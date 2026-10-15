@@ -115,14 +115,22 @@ public final class FileOps {
 		return fromLocalFile(new File(System.getProperty("user.home")));
 	}
 
-	/** A one-line label for a file system: its title, or its type id. */
+	/**
+	 * A one-line label for a file system: "Local" for the local disk, else its type, or its
+	 * title when that says more (sftp://user@host:22). Titles such as the memory file system's
+	 * "Local" are not used, so a pane never looks local when it isn't.
+	 */
 	public static String describe(FileSourceFactory factory) {
+		String type = factory.getTypeId();
+		if( FileProxyFactory.FACTORY_ID.equals(type)) {
+			return "Local";
+		}
 		String title = null;
 		try {
 			title = factory.getTitle();
 		} catch (RuntimeException e) {
 			// a factory that isn't connected may not have one
 		}
-		return title == null || title.isEmpty() ? factory.getTypeId() : title;
+		return title != null && title.startsWith(type+":") ? title : type;
 	}
 }

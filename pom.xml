@@ -108,6 +108,12 @@
 			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
+			<!-- The line-oriented version: fsh, with the console's builtins added (FshConsole) -->
+			<groupId>us.bringardner</groupId>
+			<artifactId>fsh</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
 			<!-- The text UI: pure Java, no native code -->
 			<groupId>com.googlecode.lanterna</groupId>
 			<artifactId>lanterna</artifactId>
