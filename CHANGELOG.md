@@ -2,8 +2,10 @@
 
 ## parley-files-console 1.0.0 (unreleased)
 
-First version: a full-screen terminal browser for parley-files file systems, the console
-counterpart of parley-files-viewer.
+First version: terminal ways to browse parley-files file systems, the console counterpart of
+parley-files-viewer, in two styles from one jar.
+
+Full screen (`pfc`):
 
 - Two panes, each on its own file system (local, memory, SFTP, JDBC, or any registered
   parley-files module)
@@ -12,3 +14,10 @@ counterpart of parley-files-viewer.
   delete, search by name and contents
 - Connect form built from each file system's connection settings
 - Letter keys for every command, plus the Midnight Commander function keys
+- One-pane layout: `w` switches, `--single` starts in it; copy and move ask for the destination
+
+Line oriented (`pfsh`): fsh with four builtins added (fsh itself unchanged):
+
+- `view` (full-screen pager, or printed / hex when piped), `edit` (remote files staged and
+  copied back), `search` (name and contents), `browse` (the full-screen browser on the shell's
+  file tree; `-c` cds to where you quit)

@@ -50,13 +50,18 @@ public final class Preview {
 	}
 
 	public static Preview of(FileSource file, int limit) throws IOException {
+		return of(file, limit, false);
+	}
+
+	/** @param hex a hex dump even if the file looks like text */
+	public static Preview of(FileSource file, int limit, boolean hex) throws IOException {
 		byte[] data;
 		boolean truncated;
 		try (InputStream in = file.getInputStream()) {
 			data = in.readNBytes(limit);
 			truncated = in.read() >= 0;
 		}
-		boolean binary = looksBinary(data);
+		boolean binary = hex || looksBinary(data);
 		String text = binary ? hexDump(data) : new String(data, StandardCharsets.UTF_8).replace("\t", "    ").replace("\r", "");
 		return new Preview(text, binary, truncated);
 	}

@@ -143,6 +143,14 @@ public class FilePane extends Panel {
 		}
 	}
 
+	private String tag;
+
+	/** A short label shown before the path (the single-pane layout shows which of the two locations this is). */
+	public void setTag(String tag) {
+		this.tag = tag;
+		updateHeader();
+	}
+
 	public boolean isActive() {
 		return active;
 	}
@@ -336,7 +344,7 @@ public class FilePane extends Panel {
 			boolean parent;
 			IOException error = null;
 			try {
-				entries = DirectoryListing.list(dir, null);
+				entries = list(dir);
 				parent = dir.getParentFile() != null;
 			} catch (IOException | RuntimeException e) {
 				entries = new ArrayList<>();
@@ -360,6 +368,23 @@ public class FilePane extends Panel {
 				}
 			});
 		});
+	}
+
+	/**
+	 * The directory's entries. Uses the plain listFiles() rather than DirectoryListing.list (which
+	 * calls listFiles(progress)): some FileSources implement only the plain one, fsh's mount
+	 * points among them, and fsh shows mounted files under their mount paths only through it.
+	 */
+	static List<FileEntry> list(FileSource dir) throws IOException {
+		FileSource[] kids = dir.listFiles();
+		List<FileEntry> ret = new ArrayList<>(kids == null ? 0 : kids.length);
+		if( kids != null ) {
+			for(FileSource kid : kids) {
+				ret.add(FileEntry.of(kid));
+			}
+		}
+		ret.sort(DirectoryListing.BY_NAME);
+		return ret;
 	}
 
 	private void refill(String select) {
@@ -404,7 +429,7 @@ public class FilePane extends Panel {
 		FileSource dir = getDirectory();
 		String where = dir == null ? "" : "["+FileOps.describe(dir.getFileSourceFactory())+"] "+dir.getAbsolutePath();
 		String flags = (showHidden ? " +hidden" : "")+(sort == Sort.NAME ? "" : " by "+sort.name().toLowerCase());
-		header.setText((active ? "> " : "  ")+where+flags);
+		header.setText((active ? "> " : "  ")+(tag == null ? "" : tag+" ")+where+flags);
 		if( active ) {
 			header.setForegroundColor(TextColor.ANSI.BLACK);
 			header.setBackgroundColor(TextColor.ANSI.CYAN);

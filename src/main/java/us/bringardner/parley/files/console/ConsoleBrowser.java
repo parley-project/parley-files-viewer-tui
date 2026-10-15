@@ -47,6 +47,7 @@ import com.googlecode.lanterna.gui2.Panel;
 import com.googlecode.lanterna.gui2.ProgressBar;
 import com.googlecode.lanterna.gui2.TextBox;
 import com.googlecode.lanterna.gui2.Window;
+import com.googlecode.lanterna.gui2.WindowBasedTextGUI;
 import com.googlecode.lanterna.gui2.dialogs.ActionListDialogBuilder;
 import com.googlecode.lanterna.gui2.dialogs.ListSelectDialog;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialog;
@@ -54,9 +55,6 @@ import com.googlecode.lanterna.gui2.dialogs.MessageDialogButton;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
-import com.googlecode.lanterna.screen.TerminalScreen;
-import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
-import com.googlecode.lanterna.terminal.Terminal;
 
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
@@ -75,7 +73,7 @@ import us.bringardner.parley.files.fileproxy.FileProxyFactory;
 public class ConsoleBrowser {
 
 	/** The key bar's entries, most useful first; what doesn't fit the width is left off (? lists them all). */
-	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "v view", "e edit", "c copy", "m move",
+	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
 			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden"};
 
 	/** The key bar for a screen this wide: as many entries as fit, in their usual order, help and quit last. */
@@ -101,7 +99,8 @@ public class ConsoleBrowser {
 			"  Enter                        open a directory, view a file",
 			"  Backspace                    parent directory",
 			"  [ / ]                        back / forward in this pane's history",
-			"  Tab                          switch panes",
+			"  Tab                          switch panes (one pane: switch between the two locations)",
+			"  w                            one pane / two panes",
 			"  g                            go to a path",
 			"  = (equals)                   show this pane's directory in the other pane",
 			"",
@@ -113,8 +112,8 @@ public class ConsoleBrowser {
 			"  v  F3                        view",
 			"  e  F4                        edit with $VISUAL / $EDITOR (remote files are copied",
 			"                               here, edited, and copied back if you saved)",
-			"  c  F5                        copy to the other pane's directory",
-			"  m  F6                        move to the other pane's directory",
+			"  c  F5                        copy to the other pane's directory (one pane: asks where)",
+			"  m  F6                        move to the other pane's directory (one pane: asks where)",
 			"  r                            rename",
 			"  n  F7                        new directory",
 			"  d  F8  Delete                delete",
@@ -141,7 +140,9 @@ public class ConsoleBrowser {
 	private final Label status = new Label("");
 	private final Label keys;
 	private final BasicWindow main;
+	private final Panel split = new Panel();
 	private int active;
+	private boolean single;
 
 	/**
 	 * @param screen a started screen
@@ -149,7 +150,16 @@ public class ConsoleBrowser {
 	 * @param right what the right pane shows first
 	 */
 	public ConsoleBrowser(Screen screen, FileSource left, FileSource right) {
+		this(screen, left, right, false);
+	}
+
+	/**
+	 * @param single start with one pane (the full width) instead of two side by side; the other
+	 *        location is still there, a Tab away
+	 */
+	public ConsoleBrowser(Screen screen, FileSource left, FileSource right, boolean single) {
 		this.screen = screen;
+		this.single = single;
 		this.gui = new MultiWindowTextGUI(screen, TextColor.ANSI.BLACK);
 
 		for(int idx=0; idx < panes.length; idx++) {
@@ -165,10 +175,6 @@ public class ConsoleBrowser {
 		};
 		main.setHints(Arrays.asList(Window.Hint.FULL_SCREEN, Window.Hint.NO_DECORATIONS));
 
-		Panel split = new Panel(new GridLayout(2).setHorizontalSpacing(1).setLeftMarginSize(0).setRightMarginSize(0));
-		for(FilePane pane : panes) {
-			split.addComponent(pane, GridLayout.createLayoutData(GridLayout.Alignment.FILL, GridLayout.Alignment.FILL, true, true));
-		}
 		keys = new Label(keyBar(screen.getTerminalSize().getColumns()));
 		keys.setForegroundColor(TextColor.ANSI.BLACK);
 		keys.setBackgroundColor(TextColor.ANSI.CYAN);
@@ -189,10 +195,34 @@ public class ConsoleBrowser {
 			}
 		});
 
-		fit(screen.getTerminalSize());
+		layoutPanes();
 		panes[0].go(left);
 		panes[1].go(right);
 		setActive(0);
+	}
+
+	public boolean isSingle() {
+		return single;
+	}
+
+	/** Switch between one pane and two. */
+	public void setSingle(boolean single) {
+		this.single = single;
+		layoutPanes();
+		setActive(active);
+	}
+
+	/** Two panes side by side, or the active one alone at full width. */
+	private void layoutPanes() {
+		split.removeAllComponents();
+		split.setLayoutManager(new GridLayout(single ? 1 : 2).setHorizontalSpacing(1).setLeftMarginSize(0).setRightMarginSize(0));
+		for(int idx=0; idx < panes.length; idx++) {
+			if( !single || idx == active ) {
+				split.addComponent(panes[idx], GridLayout.createLayoutData(GridLayout.Alignment.FILL, GridLayout.Alignment.FILL, true, true));
+			}
+			panes[idx].setTag(single ? "["+(idx+1)+"/2]" : null);
+		}
+		fit(screen.getTerminalSize());
 	}
 
 	/** Show the browser; returns when the user quits. */
@@ -225,7 +255,7 @@ public class ConsoleBrowser {
 		if( keys != null ) {
 			keys.setText(keyBar(size.getColumns()));
 		}
-		int paneWidth = (size.getColumns()-1)/2;
+		int paneWidth = single ? size.getColumns() : (size.getColumns()-1)/2;
 		int paneHeight = size.getRows()-2;
 		for(FilePane pane : panes) {
 			pane.fit(paneWidth, paneHeight);
@@ -241,7 +271,11 @@ public class ConsoleBrowser {
 	}
 
 	private void setActive(int idx) {
+		boolean swap = single && idx != active;
 		active = idx;
+		if( swap ) {
+			layoutPanes();
+		}
 		panes[idx].setActive(true);
 		panes[1-idx].setActive(false);
 		setStatus(panes[idx].describeCurrent());
@@ -259,6 +293,7 @@ public class ConsoleBrowser {
 		if( type == KeyType.Character && !key.isCtrlDown() && !key.isAltDown()) {
 			switch (key.getCharacter()) {
 				case 'q': quit(); return true;
+				case 'w': setSingle(!single); return true;
 				case '?': help(); return true;
 				case 'v': viewSelected(); return true;
 				case 'e': edit(); return true;
@@ -356,6 +391,11 @@ public class ConsoleBrowser {
 	}
 
 	private void showText(String title, String text) {
+		showText(gui, title, text);
+	}
+
+	/** A read-only, scrolling, full-screen text window; returns when it's closed (Esc or q). */
+	public static void showText(WindowBasedTextGUI gui, String title, String text) {
 		BasicWindow w = new BasicWindow(title) {
 			@Override
 			public boolean handleInput(KeyStroke key) {
@@ -376,6 +416,11 @@ public class ConsoleBrowser {
 		p.addComponent(new Label("Esc or q to close"), BorderLayout.Location.BOTTOM);
 		w.setComponent(p);
 		gui.addWindowAndWait(w);
+	}
+
+	/** The directory of the pane that was active (after run(): when the user quit). */
+	public FileSource getActiveDirectory() {
+		return pane().getDirectory();
 	}
 
 	private void edit() {
@@ -449,7 +494,14 @@ public class ConsoleBrowser {
 		}
 		FileSource dest = other().getDirectory();
 		String what = files.size() == 1 ? files.get(0).getName() : files.size()+" items";
-		if( !confirm(move ? "Move" : "Copy", (move ? "Move " : "Copy ")+what+"\nto ["
+		if( single ) {
+			// no other pane on screen: ask where, starting from the other location
+			FileSource asked = askDestination((move ? "Move " : "Copy ")+what+" to", dest);
+			if( asked == null ) {
+				return;
+			}
+			dest = asked;
+		} else if( !confirm(move ? "Move" : "Copy", (move ? "Move " : "Copy ")+what+"\nto ["
 				+FileOps.describe(dest.getFileSourceFactory())+"] "+dest.getAbsolutePath()+" ?")) {
 			return;
 		}
@@ -515,6 +567,35 @@ public class ConsoleBrowser {
 			return CopyJob.Conflict.CANCEL;
 		} catch (ExecutionException e) {
 			return CopyJob.Conflict.CANCEL;
+		}
+	}
+
+	/**
+	 * Ask for a destination directory. A relative path is taken from this pane's directory; an
+	 * absolute one is on the file system of the suggested directory (the other location), which
+	 * the prompt names.
+	 *
+	 * @return the directory, or null if canceled or it isn't one
+	 */
+	private FileSource askDestination(String title, FileSource suggested) {
+		String fs = FileOps.describe(suggested.getFileSourceFactory());
+		String path = prompt(title, "Directory (absolute: on "+fs+"; relative: from here)", suggested.getAbsolutePath());
+		if( path == null || path.trim().isEmpty()) {
+			return null;
+		}
+		path = path.trim();
+		try {
+			FileSource dir = path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*")
+					? suggested.getFileSourceFactory().createFileSource(path)
+					: pane().getDirectory().getChild(path);
+			if( !dir.isDirectory()) {
+				setStatus(path+" is not a directory");
+				return null;
+			}
+			return dir;
+		} catch (IOException e) {
+			error("Can't use "+path, e);
+			return null;
 		}
 	}
 
@@ -846,8 +927,21 @@ public class ConsoleBrowser {
 
 	public static void main(String[] args) throws IOException {
 		System.setProperty("java.awt.headless", "true");
-		FileSource left = FileOps.fromLocalFile(new File(args.length > 0 ? args[0] : ".").getCanonicalFile());
-		FileSource right = args.length > 1 ? FileOps.fromLocalFile(new File(args[1]).getCanonicalFile()) : FileOps.localHome();
+		boolean single = false;
+		List<String> dirs = new ArrayList<>();
+		for(String a : args) {
+			if( a.equals("--single") || a.equals("-1")) {
+				single = true;
+			} else if( a.equals("--help") || a.equals("-h")) {
+				System.out.println("usage: parley-files-console [--single] [left-dir] [right-dir]");
+				System.out.println("  --single, -1   start with one pane (w switches)");
+				return;
+			} else {
+				dirs.add(a);
+			}
+		}
+		FileSource left = FileOps.fromLocalFile(new File(dirs.size() > 0 ? dirs.get(0) : ".").getCanonicalFile());
+		FileSource right = dirs.size() > 1 ? FileOps.fromLocalFile(new File(dirs.get(1)).getCanonicalFile()) : FileOps.localHome();
 		for(FileSource f : new FileSource[] {left, right}) {
 			if( !f.isDirectory()) {
 				System.err.println(f.getAbsolutePath()+" is not a directory");
@@ -855,14 +949,8 @@ public class ConsoleBrowser {
 			}
 		}
 
-		Terminal terminal = new DefaultTerminalFactory().setForceTextTerminal(true).createTerminal();
-		Screen screen = new TerminalScreen(terminal);
-		screen.startScreen();
-		try {
-			new ConsoleBrowser(screen, left, right).run();
-		} finally {
-			screen.stopScreen();
-		}
+		boolean one = single;
+		Tui.run(screen->new ConsoleBrowser(screen, left, right, one).run());
 		System.exit(0);
 	}
 }

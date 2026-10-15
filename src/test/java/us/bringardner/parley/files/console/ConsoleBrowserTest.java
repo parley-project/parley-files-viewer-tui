@@ -209,6 +209,31 @@ public class ConsoleBrowserTest {
 	}
 
 	@Test
+	public void switchesToOnePaneAndCopiesByPath() throws Exception {
+		type('w');
+		waitFor(()->browser.isSingle() && text().contains("[1/2]"), "the single-pane layout");
+		assertFalse(text().contains(right.getAbsolutePath()), "only one pane is shown");
+
+		// Tab shows the other location in the same space
+		key(new KeyStroke(KeyType.Tab));
+		waitFor(()->text().contains("[2/2]") && text().contains(right.getAbsolutePath()), "the second location");
+		key(new KeyStroke(KeyType.Tab));
+		waitFor(()->text().contains("[1/2]") && text().contains("readme.txt"), "back to the first");
+
+		// copy asks where, suggesting the other location
+		key(new KeyStroke(KeyType.ArrowDown));
+		key(new KeyStroke(KeyType.ArrowDown)); // readme.txt
+		type('c');
+		waitFor(()->text().contains("Copy readme.txt to"), "the destination prompt");
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->browser.getStatus().startsWith("Copied"), "the copy");
+		assertTrue(right.getChild("readme.txt").exists());
+
+		type('w');
+		waitFor(()->!browser.isSingle() && text().contains(right.getAbsolutePath()) && !text().contains("[1/2]"), "two panes again");
+	}
+
+	@Test
 	public void quits() throws Exception {
 		type('q');
 		thread.join(5000);

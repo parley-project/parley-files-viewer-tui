@@ -1,0 +1,4 @@
+#!/bin/sh
+# The full-screen browser. Usage: pfc [--single] [left-dir] [right-dir]
+. "$(dirname "$0")/java-options.sh"
+exec java $JAVA_OPTS -jar "$JAR" "$@"
