@@ -284,7 +284,10 @@ public class ConsoleBrowser {
 	void setStatus(String text) {
 		// keep it to one line
 		int nl = text == null ? -1 : text.indexOf('\n');
-		status.setText(text == null ? "" : nl >= 0 ? text.substring(0, nl)+" ..." : text);
+		String line = text == null ? "" : nl >= 0 ? text.substring(0, nl)+" ..." : text;
+		// and to the screen's width: a longer label is wrapped onto lines that aren't shown
+		int width = screen.getTerminalSize().getColumns();
+		status.setText(line.length() <= width ? line : line.substring(0, Math.max(0, width-3))+"...");
 	}
 
 	/** The global keys; anything not handled here goes to the focused table. */

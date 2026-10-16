@@ -107,6 +107,11 @@ public class ConsoleBrowserTest {
 		return ret.toString();
 	}
 
+	/** A pane header ends with path (followed by a space, or at the end of its line). */
+	private static boolean showsDir(String screenText, String path) {
+		return screenText.contains(path+" ") || screenText.contains(path+"\n");
+	}
+
 	private void key(KeyStroke k) {
 		terminal.addInput(k);
 	}
@@ -129,18 +134,19 @@ public class ConsoleBrowserTest {
 	public void drawsBothPanesAndTheKeyBar() {
 		String screenText = text();
 		assertTrue(screenText.contains("folder/"), screenText);
-		assertTrue(screenText.contains(left.getAbsolutePath()), screenText);
-		assertTrue(screenText.contains(right.getAbsolutePath()), screenText);
+		// (the headers show the end of each path: a long one is shortened from the front)
+		assertTrue(showsDir(screenText, "/left"), screenText);
+		assertTrue(showsDir(screenText, "/right"), screenText);
 		assertTrue(screenText.contains("q quit"), screenText);
 	}
 
 	@Test
 	public void entersDirectoriesAndGoesBackUp() throws Exception {
 		// cursor starts on ".."; down once is "folder/"
-		String folder = left.getChild("folder").getAbsolutePath();
+		String folder = "/left/folder";
 		key(new KeyStroke(KeyType.ArrowDown));
 		key(new KeyStroke(KeyType.Enter));
-		waitFor(()->text().contains(folder), "entering folder");
+		waitFor(()->showsDir(text(), folder), "entering folder");
 		key(new KeyStroke(KeyType.Backspace));
 		waitFor(()->text().contains("readme.txt"), "back in left");
 	}
@@ -212,11 +218,11 @@ public class ConsoleBrowserTest {
 	public void switchesToOnePaneAndCopiesByPath() throws Exception {
 		type('w');
 		waitFor(()->browser.isSingle() && text().contains("[1/2]"), "the single-pane layout");
-		assertFalse(text().contains(right.getAbsolutePath()), "only one pane is shown");
+		assertFalse(showsDir(text(), "/right"), "only one pane is shown");
 
 		// Tab shows the other location in the same space
 		key(new KeyStroke(KeyType.Tab));
-		waitFor(()->text().contains("[2/2]") && text().contains(right.getAbsolutePath()), "the second location");
+		waitFor(()->text().contains("[2/2]") && showsDir(text(), "/right"), "the second location");
 		key(new KeyStroke(KeyType.Tab));
 		waitFor(()->text().contains("[1/2]") && text().contains("readme.txt"), "back to the first");
 
@@ -230,7 +236,21 @@ public class ConsoleBrowserTest {
 		assertTrue(right.getChild("readme.txt").exists());
 
 		type('w');
-		waitFor(()->!browser.isSingle() && text().contains(right.getAbsolutePath()) && !text().contains("[1/2]"), "two panes again");
+		waitFor(()->!browser.isSingle() && showsDir(text(), "/right") && !text().contains("[1/2]"), "two panes again");
+	}
+
+	@Test
+	public void longPathsAreShortenedFromTheFront() throws Exception {
+		FileSource deep = left;
+		for(String name : "a-rather-long-directory-name/and-another-one/and-one-more/deep".split("/")) {
+			deep = deep.getChild(name);
+		}
+		assertTrue(deep.mkdirs());
+		FileSource target = deep;
+		browser.getGui().getGUIThread().invokeLater(()->browser.getPane(0).go(target));
+		waitFor(()->text().contains("/and-one-more/deep"), "the end of the long path");
+		String first = text().split("\n")[0];
+		assertTrue(first.startsWith("> [Local] ..."), first);
 	}
 
 	@Test
@@ -263,7 +283,7 @@ public class ConsoleBrowserTest {
 		}
 		key(new KeyStroke(KeyType.Enter));
 		waitFor(()->text().contains("1 found"), "search results");
-		assertTrue(text().contains(left.getChild("readme.txt").getAbsolutePath()));
+		assertTrue(text().contains("/left/readme.txt"), text());
 		key(new KeyStroke(KeyType.Escape));
 		waitFor(()->!text().contains("1 found"), "results to close");
 	}

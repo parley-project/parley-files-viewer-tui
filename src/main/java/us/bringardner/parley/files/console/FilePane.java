@@ -91,6 +91,7 @@ public class FilePane extends Panel {
 	private boolean active;
 	private Sort sort = Sort.NAME;
 	private int nameWidth = 30;
+	private int paneWidth = 80;
 	private long loadSerial;
 
 	public FilePane(Executor worker, TextGUIThread guiThread, Consumer<String> status) {
@@ -175,6 +176,7 @@ public class FilePane extends Panel {
 
 	/** Size the table to the space the pane has: rows to show and the width of the name column. */
 	public void fit(int width, int height) {
+		paneWidth = width;
 		nameWidth = Math.max(10, width-SIZE_WIDTH-DATE_WIDTH-4);
 		table.setVisibleRows(Math.max(3, height-3));
 		refill(currentName());
@@ -427,9 +429,10 @@ public class FilePane extends Panel {
 
 	private void updateHeader() {
 		FileSource dir = getDirectory();
-		String where = dir == null ? "" : "["+FileOps.describe(dir.getFileSourceFactory())+"] "+dir.getAbsolutePath();
+		String lead = (active ? "> " : "  ")+(tag == null ? "" : tag+" ")
+				+(dir == null ? "" : "["+FileOps.describe(dir.getFileSourceFactory())+"] ");
 		String flags = (showHidden ? " +hidden" : "")+(sort == Sort.NAME ? "" : " by "+sort.name().toLowerCase());
-		header.setText((active ? "> " : "  ")+(tag == null ? "" : tag+" ")+where+flags);
+		header.setText(fitHeader(lead, dir == null ? "" : dir.getAbsolutePath(), flags, paneWidth));
 		if( active ) {
 			header.setForegroundColor(TextColor.ANSI.BLACK);
 			header.setBackgroundColor(TextColor.ANSI.CYAN);
@@ -437,6 +440,25 @@ public class FilePane extends Panel {
 			header.setForegroundColor(null);
 			header.setBackgroundColor(null);
 		}
+	}
+
+	/**
+	 * lead + path + flags in at most width columns, on one line. A label longer than its space is
+	 * word-wrapped by Lanterna and only its first line shows, which lost the whole path in a deep
+	 * directory; so the path is shortened from the front instead (.../parent/dir), keeping the
+	 * part that says where you are.
+	 */
+	static String fitHeader(String lead, String path, String flags, int width) {
+		String full = lead+path+flags;
+		if( full.length() <= width ) {
+			return full;
+		}
+		int room = width-lead.length()-flags.length()-3;
+		if( room < 1 ) {
+			// not even room for a bit of the path: whatever fits of the start
+			return full.substring(0, Math.max(0, width));
+		}
+		return lead+"..."+path.substring(path.length()-room)+flags;
 	}
 
 	private FileEntry entryAt(int row) {

@@ -262,6 +262,15 @@ public class JobsTest {
 	}
 
 	@Test
+	public void headersFitTheirWidth() {
+		assertEquals("> [Local] /a/b", FilePane.fitHeader("> [Local] ", "/a/b", "", 40));
+		String h = FilePane.fitHeader("> [Local] ", "/var/folders/7x/qq1k/T/junit123/left", " +hidden", 30);
+		assertEquals(30, h.length());
+		assertEquals("> [Local] ...nit123/left +hidden", FilePane.fitHeader("> [Local] ", "/var/folders/7x/qq1k/T/junit123/left", " +hidden", 32));
+		assertEquals("> [Lo", FilePane.fitHeader("> [Local] ", "/x/y/z", "", 5));
+	}
+
+	@Test
 	public void keyBarFitsTheWidth() {
 		String narrow = ConsoleBrowser.keyBar(40);
 		assertTrue(narrow.length() <= 40, narrow);
