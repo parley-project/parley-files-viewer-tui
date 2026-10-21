@@ -103,9 +103,16 @@ public final class Connections {
 		return startDirectory(factory);
 	}
 
-	/** The factory's current directory, else its first root. */
+	/**
+	 * The factory's current directory if it exists, else its first root. (The memory file system's
+	 * current directory starts as the JVM's working directory, which isn't in it, so a pane opened
+	 * there would show an empty folder with a local-looking path.)
+	 */
 	public static FileSource startDirectory(FileSourceFactory factory) throws IOException {
 		FileSource ret = factory.getCurrentDirectory();
+		if( ret != null && !ret.exists()) {
+			ret = null;
+		}
 		if( ret == null ) {
 			FileSource[] roots = factory.listRoots();
 			if( roots == null || roots.length == 0 ) {
