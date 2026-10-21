@@ -220,6 +220,113 @@ public class TuiBrowserTest {
 		waitFor(()->text().contains("[memory] / "), "the memory root in the header");
 	}
 
+	/** o, then the file system at this place in the list (Local is first). */
+	private void openConnect(String type) throws InterruptedException {
+		type('o');
+		waitFor(()->text().contains("File system for this pane"), "the file system list");
+		int idx = Connections.types().indexOf(type);
+		assertTrue(idx >= 0, type);
+		for(int i=0; i < idx; i++) {
+			key(new KeyStroke(KeyType.ArrowDown));
+		}
+		key(new KeyStroke(KeyType.Enter));
+	}
+
+	private void tab(int times) {
+		for(int i=0; i < times; i++) {
+			key(new KeyStroke(KeyType.Tab));
+		}
+	}
+
+	private void typeText(String text) {
+		for(char c : text.toCharArray()) {
+			type(c);
+		}
+	}
+
+	@Test
+	public void theConnectFormShowsOnlyWhatApplies() throws Exception {
+		openConnect("sftp");
+		waitFor(()->text().contains("Connect: sftp"), "the sftp form");
+		String form = text();
+		assertTrue(form.contains("Host *") && form.contains("User *") && form.contains("Log in with"), form);
+		assertTrue(form.contains("Password"), "logging in with a password: its field\n"+form);
+		assertFalse(form.contains("Private key file") || form.contains("Private key "), "not the key fields\n"+form);
+		assertFalse(form.contains("Known hosts file"), "the advanced settings are behind More...\n"+form);
+		assertTrue(form.contains("Start in") && form.contains("More..."), form);
+
+		// More...: from Host, past Port, User, Log in with, Password, the cache time, Start in, Connect and Cancel
+		tab(9);
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->text().contains("Known hosts file") && text().contains("Advanced:") && text().contains("Fewer"), "the advanced settings");
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->!text().contains("Known hosts file") && text().contains("More..."), "the advanced settings hidden again");
+		key(new KeyStroke(KeyType.Escape));
+		waitFor(()->!text().contains("Connect: sftp"), "the form to close");
+
+		// a key file instead of a password: its field (with Browse...), not the password's
+		openConnect("sftp");
+		waitFor(()->text().contains("Connect: sftp"), "the sftp form");
+		tab(3);
+		// a drop-down: Enter opens it, the arrow picks the next one, Enter chooses it
+		key(new KeyStroke(KeyType.Enter));
+		key(new KeyStroke(KeyType.ArrowDown));
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->text().contains("Private key file") && text().contains("Browse..."), "the key file field");
+		assertFalse(text().contains("Password"), text());
+		// the line under the form describes the field being edited
+		tab(1);
+		waitFor(()->text().contains("An OpenSSH or PEM private key file"), "the key file's description");
+		key(new KeyStroke(KeyType.Escape));
+		waitFor(()->!text().contains("Connect: sftp"), "the form to close");
+	}
+
+	@Test
+	public void startInThatIsntAFolderSaysSo() throws Exception {
+		openConnect("memory");
+		waitFor(()->text().contains("Connect: memory"), "the connect form");
+		tab(1);
+		waitFor(()->text().contains("The folder to open once connected"), "Start in's description");
+		typeText("/nope");
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->text().contains("/nope isn't a folder on memory; opened /"), "the message");
+		assertEquals("/", browser.getPane(0).getDirectory().getAbsolutePath());
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->!text().contains("isn't a folder"), "the message to close");
+	}
+
+	@Test
+	public void leavingAConnectionAsksFirstAndGoesBackToTheLastLocalFolder() throws Exception {
+		String leftPath = left.getAbsolutePath();
+		openConnect("memory");
+		waitFor(()->text().contains("Connect: memory"), "the connect form");
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->"memory".equals(browser.getPane(0).getFactory().getTypeId()) && text().contains("[memory] / "), "the memory pane");
+
+		// x asks; No keeps the connection
+		type('x');
+		waitFor(()->text().contains("Disconnect from memory?"), "the question");
+		tab(1);
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->!text().contains("Disconnect from memory?"), "the question to close");
+		assertEquals("memory", browser.getPane(0).getFactory().getTypeId());
+
+		// Local asks which folder, starting with where this pane last was on the local disk
+		openConnect("fileproxy");
+		waitFor(()->text().contains("Folder on the local disk") && text().contains(leftPath), "the local folder, filled in");
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->text().contains("Disconnect from memory?"), "the question");
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->FileOps.isLocal(browser.getPane(0).getDirectory()), "the pane back on the local disk");
+		assertEquals(leftPath, browser.getPane(0).getDirectory().getAbsolutePath());
+
+		// on the local disk already: x doesn't ask
+		type('x');
+		waitFor(()->FileOps.isLocal(browser.getPane(0).getDirectory()), "still local");
+		Thread.sleep(300);
+		assertFalse(text().contains("Disconnect from"), text());
+	}
+
 	@Test
 	public void switchesToOnePaneAndCopiesByPath() throws Exception {
 		type('w');
@@ -292,5 +399,40 @@ public class TuiBrowserTest {
 		assertTrue(text().contains("/left/readme.txt"), text());
 		key(new KeyStroke(KeyType.Escape));
 		waitFor(()->!text().contains("1 found"), "results to close");
+	}
+
+	@Test
+	public void aKeyFileCanBeChosenFromADropDown() throws Exception {
+		java.nio.file.Path home = tmp.resolve("home");
+		java.nio.file.Files.createDirectories(home.resolve(".ssh"));
+		java.nio.file.Files.write(home.resolve(".ssh/id_ed25519"), "key".getBytes());
+		java.nio.file.Files.write(home.resolve(".ssh/id_rsa"), "key".getBytes());
+		String old = System.getProperty("user.home");
+		System.setProperty("user.home", home.toString());
+		try {
+			openConnect("sftp");
+			waitFor(()->text().contains("Connect: sftp"), "the sftp form");
+			// Log in with: Private Key File
+			tab(3);
+			key(new KeyStroke(KeyType.Enter));
+			key(new KeyStroke(KeyType.ArrowDown));
+			key(new KeyStroke(KeyType.Enter));
+			waitFor(()->text().contains("Private key file"), "the key file field");
+			tab(1);
+			waitFor(()->text().contains("Type a path, or Enter"), "the field's help");
+			// Enter: the files in ~/.ssh, shown with ~; the second one is chosen
+			key(new KeyStroke(KeyType.Enter));
+			waitFor(()->text().contains("~/.ssh/id_ed25519") && text().contains("~/.ssh/id_rsa"), "the list of key files");
+			key(new KeyStroke(KeyType.ArrowDown));
+			key(new KeyStroke(KeyType.Enter));
+			waitFor(()->text().contains("~/.ssh/id_rsa") && !text().contains("~/.ssh/id_ed25519"), "the chosen file in the field");
+			// the factory gets the full path
+			assertEquals(home.resolve(".ssh/id_rsa").toString(), FileOps.expandHome("~/.ssh/id_rsa"));
+			assertEquals("~/.ssh/id_rsa", FileOps.abbreviateHome(home.resolve(".ssh/id_rsa").toString()));
+			key(new KeyStroke(KeyType.Escape));
+			waitFor(()->!text().contains("Connect: sftp"), "the form to close");
+		} finally {
+			System.setProperty("user.home", old);
+		}
 	}
 }

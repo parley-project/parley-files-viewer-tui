@@ -110,6 +110,35 @@ public final class FileOps {
 		return FileSourceFactory.getDefaultFactory().createFileSource(file.getAbsolutePath());
 	}
 
+	/** A path typed by a person: ~ or ~/... is the home directory. */
+	public static String expandHome(String path) {
+		if( path == null ) {
+			return null;
+		}
+		if( path.equals("~")) {
+			return System.getProperty("user.home");
+		}
+		if( path.startsWith("~/") || path.startsWith("~"+File.separator)) {
+			return System.getProperty("user.home")+path.substring(1);
+		}
+		return path;
+	}
+
+	/** A local path to show a person: under the home directory it starts with ~ (expandHome undoes it). */
+	public static String abbreviateHome(String path) {
+		String home = System.getProperty("user.home");
+		if( path == null || home == null || home.isEmpty()) {
+			return path;
+		}
+		if( path.equals(home)) {
+			return "~";
+		}
+		if( path.startsWith(home+File.separator)) {
+			return "~"+path.substring(home.length());
+		}
+		return path;
+	}
+
 	/** The user's home directory on the local disk. */
 	public static FileSource localHome() throws IOException {
 		return fromLocalFile(new File(System.getProperty("user.home")));

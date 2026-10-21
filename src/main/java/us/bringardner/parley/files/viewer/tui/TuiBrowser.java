@@ -120,8 +120,8 @@ public class TuiBrowser {
 			"",
 			"Other",
 			"  s                            search below this directory (name and/or text)",
-			"  o                            connect this pane to a file system (SFTP, JDBC, ...)",
-			"  x                            disconnect: back to the local home directory",
+			"  o                            connect this pane to a file system (SFTP, JDBC, ...), or Local",
+			"  x                            back to the local disk, where this pane last was there",
 			"  t                            shell in this directory (local file systems)",
 			"  h                            show / hide hidden files",
 			"  f                            sort by name, size, modified",
@@ -733,8 +733,12 @@ public class TuiBrowser {
 			return;
 		}
 		String type = types.get(java.util.Arrays.asList(labels).indexOf(label));
+		FilePane target = pane();
 		if( type.equals(FileProxyFactory.FACTORY_ID)) {
-			disconnect();
+			goLocal(target);
+			return;
+		}
+		if( !mayLeave(target)) {
 			return;
 		}
 		FileSourceFactory factory;
@@ -744,29 +748,148 @@ public class TuiBrowser {
 			error("Can't connect", e);
 			return;
 		}
-		Properties values = ConnectDialog.show(gui, factory);
-		if( values == null ) {
+		ConnectDialog.Answer answer = ConnectDialog.show(gui, factory);
+		if( answer == null ) {
 			return;
 		}
-		FilePane target = pane();
-		setStatus("Connecting to "+type+" ...");
+		setStatus("Connecting to "+label+" ...");
 		worker.execute(()->{
 			try {
-				FileSource start = Connections.connect(factory, values);
-				gui.getGUIThread().invokeLater(()->switchTo(target, start));
+				FileSource start = Connections.connect(factory, answer.values);
+				String note = null;
+				if( !answer.startIn.isEmpty()) {
+					try {
+						start = Connections.startIn(factory, answer.startIn);
+					} catch (IOException e) {
+						note = e.getMessage()+"; opened "+start.getAbsolutePath();
+					}
+				}
+				FileSource dir = start;
+				String message = note;
+				gui.getGUIThread().invokeLater(()->{
+					switchTo(target, dir);
+					if( message != null ) {
+						// a dialog, not the status line: the pane's listing replaces that as it loads
+						com.googlecode.lanterna.gui2.dialogs.MessageDialog.showMessageDialog(gui, "Start in", message,
+								com.googlecode.lanterna.gui2.dialogs.MessageDialogButton.OK);
+					}
+				});
 			} catch (IOException | RuntimeException e) {
-				error("Can't connect to "+type, e);
+				error("Can't connect to "+label, e);
 			}
 		});
 	}
 
-	/** Back to the local home directory, disconnecting the remote file system if nothing else uses it. */
+	/** x: back to the local disk, where this pane last was there (else home), asking before a connection is closed. */
 	private void disconnect() {
-		try {
-			switchTo(pane(), FileOps.localHome());
-		} catch (IOException e) {
-			error("Can't open the home directory", e);
+		FilePane target = pane();
+		if( !mayLeave(target)) {
+			return;
 		}
+		try {
+			switchTo(target, localStart(target));
+		} catch (IOException e) {
+			error("Can't open the local folder", e);
+		}
+	}
+
+	/** Local in the connect list: ask which local folder, starting with where this pane last was. */
+	private void goLocal(FilePane target) {
+		String path;
+		try {
+			path = askLocalFolder(localStart(target).getAbsolutePath());
+		} catch (IOException e) {
+			error("Can't open the local folder", e);
+			return;
+		}
+		if( path == null || path.trim().isEmpty()) {
+			return;
+		}
+		try {
+			FileSource dir = FileOps.fromLocalFile(new java.io.File(FileOps.expandHome(path.trim())));
+			if( !dir.isDirectory()) {
+				setStatus(path.trim()+" isn't a folder");
+				return;
+			}
+			if( !mayLeave(target)) {
+				return;
+			}
+			switchTo(target, dir);
+		} catch (IOException e) {
+			error("Can't open "+path, e);
+		}
+	}
+
+	/** Where a pane goes back to on the local disk: the last local folder it showed, else home. */
+	private FileSource localStart(FilePane target) throws IOException {
+		FileSource last = target.getLastLocal();
+		return last != null && last.isDirectory() ? last : FileOps.localHome();
+	}
+
+	/**
+	 * Whether the pane may leave the file system it's on: yes if that is the local disk, or the
+	 * other pane uses it too; otherwise leaving closes the connection, so ask.
+	 */
+	private boolean mayLeave(FilePane target) {
+		FileSourceFactory current = target.getFactory();
+		if( current == null || FileProxyFactory.FACTORY_ID.equals(current.getTypeId())) {
+			return true;
+		}
+		FilePane otherPane = target == panes[0] ? panes[1] : panes[0];
+		if( otherPane.getFactory() == current ) {
+			return true;
+		}
+		return confirm("Disconnect", "Disconnect from "+FileOps.describe(current)+"?\nNo other pane uses it.");
+	}
+
+	/** Ask for a folder on the local disk: typed (~ is home) or chosen with Browse...; null if canceled. */
+	private String askLocalFolder(String initial) {
+		String[] answer = {null};
+		BasicWindow w = new BasicWindow("Local");
+		w.setHints(Arrays.asList(Window.Hint.CENTERED, Window.Hint.MODAL));
+		TextBox box = new TextBox(new TerminalSize(Math.max(40, initial.length()+2), 1), initial) {
+			@Override
+			public Result handleKeyStroke(KeyStroke key) {
+				if( key.getKeyType() == KeyType.Enter ) {
+					answer[0] = getText();
+					w.close();
+					return Result.HANDLED;
+				}
+				if( key.getKeyType() == KeyType.Escape ) {
+					w.close();
+					return Result.HANDLED;
+				}
+				return super.handleKeyStroke(key);
+			}
+		};
+		box.setCaretPosition(initial.length());
+		Panel buttons = new Panel(new LinearLayout(Direction.HORIZONTAL));
+		buttons.addComponent(new Button("Open", ()->{
+			answer[0] = box.getText();
+			w.close();
+		}));
+		buttons.addComponent(new Button("Browse...", ()->{
+			com.googlecode.lanterna.gui2.dialogs.DirectoryDialogBuilder b = new com.googlecode.lanterna.gui2.dialogs.DirectoryDialogBuilder()
+					.setTitle("Local folder")
+					.setActionLabel("Choose")
+					.setSelectedDirectory(new java.io.File(FileOps.expandHome(box.getText().trim())));
+			b.setShowHiddenDirectories(true);
+			java.io.File chosen = b.build().showDialog(gui);
+			if( chosen != null ) {
+				box.setText(chosen.getAbsolutePath());
+				box.setCaretPosition(box.getText().length());
+			}
+			w.setFocusedInteractable(box);
+		}));
+		buttons.addComponent(new Button("Cancel", w::close));
+		Panel p = new Panel(new LinearLayout(Direction.VERTICAL));
+		p.addComponent(new Label("Folder on the local disk"));
+		p.addComponent(box);
+		p.addComponent(new Label("Enter: open   Esc: cancel"));
+		p.addComponent(buttons);
+		w.setComponent(p);
+		gui.addWindowAndWait(w);
+		return answer[0];
 	}
 
 	/** Show dir in pane, and disconnect the file system the pane was on if it's now unused. */

@@ -112,6 +112,19 @@ public final class Connections {
 	}
 
 	/**
+	 * The folder a person asked to start in, on a connected factory.
+	 *
+	 * @throws IOException if it isn't a folder there
+	 */
+	public static FileSource startIn(FileSourceFactory factory, String path) throws IOException {
+		FileSource ret = factory.createFileSource(path);
+		if( ret == null || !ret.isDirectory()) {
+			throw new IOException(path+" isn't a folder on "+label(factory.getTypeId()));
+		}
+		return ret;
+	}
+
+	/**
 	 * The factory's current directory if it exists, else its first root. (The memory file system's
 	 * current directory starts as the JVM's working directory, which isn't in it, so a pane opened
 	 * there would show an empty folder with a local-looking path.)
