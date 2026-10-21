@@ -5,7 +5,7 @@
 First version: parley-files-viewer without a GUI, browsing parley-files file systems in a terminal,
 in two styles from one jar.
 
-Full screen (`pfc`):
+Full screen (`pfv`):
 
 - Two panes, each on its own file system (local, memory, SFTP, FTP, JDBC, or any registered
   parley-files module)

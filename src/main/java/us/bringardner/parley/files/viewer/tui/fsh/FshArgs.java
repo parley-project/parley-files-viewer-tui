@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console.fsh;
+package us.bringardner.parley.files.viewer.tui.fsh;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ import java.util.List;
 import us.bringardner.fsh.ShellContext;
 
 /**
- * Small option parser for the console's fsh builtins: single-letter flags (which may be
+ * Small option parser for the TUI's fsh builtins: single-letter flags (which may be
  * combined, -ia), flags that take a value (-n PATTERN or -nPATTERN), {@code --} to end options,
  * and the remaining words.
  */

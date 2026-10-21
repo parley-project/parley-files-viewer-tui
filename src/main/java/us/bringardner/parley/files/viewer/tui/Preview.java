@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console;
+package us.bringardner.parley.files.viewer.tui;
 
 import java.io.IOException;
 import java.io.InputStream;

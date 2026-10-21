@@ -18,13 +18,13 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console.fsh;
+package us.bringardner.parley.files.viewer.tui.fsh;
 
 import java.io.IOException;
 
 import us.bringardner.fsh.NativeKeyboard;
 import us.bringardner.fsh.ShellContext;
-import us.bringardner.parley.files.console.Tui;
+import us.bringardner.parley.files.viewer.tui.Tui;
 
 /**
  * Runs a full-screen view from inside fsh: the shell lends the terminal (as it does to a

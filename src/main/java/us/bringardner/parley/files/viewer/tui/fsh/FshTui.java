@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console.fsh;
+package us.bringardner.parley.files.viewer.tui.fsh;
 
 import java.io.IOException;
 
@@ -26,7 +26,7 @@ import us.bringardner.fsh.Console;
 import us.bringardner.fsh.ShellCommand;
 
 /**
- * The line-oriented version of the console: fsh (a bash-compatible shell over any parley-files
+ * The line-oriented version of the TUI: fsh (a bash-compatible shell over any parley-files
  * file system: connect, cd, ls, cp, find ...), with the file viewer's other features added as
  * builtins:
  * <ul>
@@ -38,9 +38,9 @@ import us.bringardner.fsh.ShellCommand;
  * {@code help NAME} describes each. Nothing in fsh changes: the builtins are added to its
  * table before it starts.
  */
-public final class FshConsole {
+public final class FshTui {
 
-	private FshConsole() {
+	private FshTui() {
 	}
 
 	/** Add the builtins to fsh's command table (before a Console runs). */

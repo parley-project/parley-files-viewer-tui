@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console.fsh;
+package us.bringardner.parley.files.viewer.tui.fsh;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ import java.util.List;
 import us.bringardner.fsh.ShellCommand;
 import us.bringardner.fsh.ShellContext;
 import us.bringardner.parley.files.FileSource;
-import us.bringardner.parley.files.console.SearchJob;
+import us.bringardner.parley.files.viewer.tui.SearchJob;
 
 /** search: files below directories by name and/or contents, on any mounted file system. */
 public class Search extends ShellCommand {

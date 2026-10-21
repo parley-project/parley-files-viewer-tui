@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console;
+package us.bringardner.parley.files.viewer.tui;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,7 +35,7 @@ import us.bringardner.parley.files.browse.DirectoryListing;
 /**
  * Copies (or moves) files and directories into a directory, on any pair of file systems, and
  * reports what it's doing to a {@link Listener}. Runs on whatever thread calls {@link #run()};
- * the console runs it on a worker and shows the progress in a dialog. Nothing here touches the
+ * the TUI runs it on a worker and shows the progress in a dialog. Nothing here touches the
  * screen, so it can be tested on its own.
  * <p>
  * A move inside one file system is a rename; across file systems it's a copy followed by a

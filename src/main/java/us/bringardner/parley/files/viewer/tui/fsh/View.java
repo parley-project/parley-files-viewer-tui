@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console.fsh;
+package us.bringardner.parley.files.viewer.tui.fsh;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,8 +29,8 @@ import com.googlecode.lanterna.TextColor;
 import us.bringardner.fsh.ShellCommand;
 import us.bringardner.fsh.ShellContext;
 import us.bringardner.parley.files.FileSource;
-import us.bringardner.parley.files.console.ConsoleBrowser;
-import us.bringardner.parley.files.console.Preview;
+import us.bringardner.parley.files.viewer.tui.TuiBrowser;
+import us.bringardner.parley.files.viewer.tui.Preview;
 
 /** view: a file in a full-screen pager, or printed (hex for binary files). */
 public class View extends ShellCommand {
@@ -79,7 +79,7 @@ public class View extends ShellCommand {
 					Preview p = Preview.of(f, Preview.DEFAULT_LIMIT, a.has('x'));
 					if( page ) {
 						String title = f.getName()+(p.isBinary() ? " (hex)" : "")+(p.isTruncated() ? " (first 1 MB)" : "");
-						FshTerminal.run(ctx, screen->ConsoleBrowser.showText(
+						FshTerminal.run(ctx, screen->TuiBrowser.showText(
 								new MultiWindowTextGUI(screen, TextColor.ANSI.BLACK), title, p.getText()));
 					} else {
 						ctx.stdout.print(p.getText());

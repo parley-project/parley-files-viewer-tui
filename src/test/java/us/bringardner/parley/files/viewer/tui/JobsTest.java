@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console;
+package us.bringardner.parley.files.viewer.tui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -272,10 +272,10 @@ public class JobsTest {
 
 	@Test
 	public void keyBarFitsTheWidth() {
-		String narrow = ConsoleBrowser.keyBar(40);
+		String narrow = TuiBrowser.keyBar(40);
 		assertTrue(narrow.length() <= 40, narrow);
 		assertTrue(narrow.endsWith("? help  q quit"), narrow);
-		String wide = ConsoleBrowser.keyBar(500);
+		String wide = TuiBrowser.keyBar(500);
 		assertTrue(wide.startsWith("Tab pane"), wide);
 		assertTrue(wide.contains("h hidden"), wide);
 	}
