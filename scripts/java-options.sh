@@ -1,10 +1,10 @@
 # Sourced by pfc and pfsh: finds the jar and the JVM options.
 BIN_DIR=$(cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(dirname "$BIN_DIR")
-JAR=$(ls "$PROJECT_DIR"/target/parley-files-console-*-all.jar 2>/dev/null | head -1)
+JAR=$(ls "$PROJECT_DIR"/target/parley-files-viewer-tui-*-all.jar 2>/dev/null | head -1)
 if [ -z "$JAR" ]; then
 	(cd "$PROJECT_DIR" && mvn -q package -DskipTests) || exit 1
-	JAR=$(ls "$PROJECT_DIR"/target/parley-files-console-*-all.jar | head -1)
+	JAR=$(ls "$PROJECT_DIR"/target/parley-files-viewer-tui-*-all.jar | head -1)
 fi
 
 # JNA (fsh's terminal handling) needs native access on Java 17 and later

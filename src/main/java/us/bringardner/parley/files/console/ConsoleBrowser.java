@@ -936,7 +936,7 @@ public class ConsoleBrowser {
 			if( a.equals("--single") || a.equals("-1")) {
 				single = true;
 			} else if( a.equals("--help") || a.equals("-h")) {
-				System.out.println("usage: parley-files-console [--single] [left-dir] [right-dir]");
+				System.out.println("usage: parley-files-viewer-tui [--single] [left-dir] [right-dir]");
 				System.out.println("  --single, -1   start with one pane (w switches)");
 				return;
 			} else {

@@ -1,10 +1,9 @@
-# parley-files-console
+# parley-files-viewer-tui
 
-Terminal (no GUI) ways to browse, copy, search and edit files on any
-[parley-files](https://github.com/parley-project/parley-files) file system: local, memory, SFTP,
-FTP and JDBC. It's the console counterpart of
-[parley-files-viewer](https://github.com/parley-project/parley-files-viewer), and works over ssh,
-in a container, or anywhere there's a terminal.
+[parley-files-viewer](https://github.com/parley-project/parley-files-viewer) without a GUI: browse,
+copy, search and edit files on any [parley-files](https://github.com/parley-project/parley-files)
+file system (local, memory, SFTP, FTP and JDBC) in a terminal. It works over ssh, in a container, or
+anywhere there's a terminal and no display.
 
 **An example of what Parley can help you build.** Like the viewer, it's an application, not part
 of the Parley library: it uses parley-files the same way your own application would.
@@ -35,8 +34,8 @@ scripts/pfsh                                       # fsh with the extra builtins
 Or without the scripts:
 
 ```bash
-java -jar target/parley-files-console-1.0.0-all.jar [--single] [left-dir] [right-dir]
-java -cp target/parley-files-console-1.0.0-all.jar us.bringardner.parley.files.console.fsh.FshConsole
+java -jar target/parley-files-viewer-tui-1.0.0-all.jar [--single] [left-dir] [right-dir]
+java -cp target/parley-files-viewer-tui-1.0.0-all.jar us.bringardner.parley.files.console.fsh.FshConsole
 ```
 
 `pfsh` uses JNA for fsh's terminal handling. If you have fsh's native library and `fshexec`

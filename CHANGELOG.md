@@ -1,9 +1,9 @@
 # Changelog
 
-## parley-files-console 1.0.0 (2026-10-21)
+## parley-files-viewer-tui 1.0.0 (2026-10-21)
 
-First version: terminal ways to browse parley-files file systems, the console counterpart of
-parley-files-viewer, in two styles from one jar.
+First version: parley-files-viewer without a GUI, browsing parley-files file systems in a terminal,
+in two styles from one jar.
 
 Full screen (`pfc`):
 
