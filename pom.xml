@@ -12,12 +12,12 @@
 		<relativePath>../parley-parent/pom.xml</relativePath>
 	</parent>
 
-	<artifactId>parley-files-console</artifactId>
+	<artifactId>parley-files-viewer-tui</artifactId>
 	<version>1.0.0</version>
-	<name>Parley Files Console</name>
-	<description>A full-screen terminal (text UI) application for browsing, copying, searching and
-		editing files on any parley-files file system (local, memory, SFTP, FTP, JDBC). The console
-		counterpart of parley-files-viewer.</description>
+	<name>Parley Files Viewer TUI</name>
+	<description>parley-files-viewer without a GUI: a full-screen terminal (text UI) application for
+		browsing, copying, searching and editing files on any parley-files file system (local, memory,
+		SFTP, FTP, JDBC).</description>
 
 	<properties>
 		<!-- Written to the jar manifest as Automatic-Module-Name -->
@@ -39,7 +39,7 @@
 					</archive>
 				</configuration>
 			</plugin>
-			<!-- target/parley-files-console-VERSION-all.jar: run with java -jar -->
+			<!-- target/parley-files-viewer-tui-VERSION-all.jar: run with java -jar -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
