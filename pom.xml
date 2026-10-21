@@ -13,10 +13,10 @@
 	</parent>
 
 	<artifactId>parley-files-console</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>Parley Files Console</name>
 	<description>A full-screen terminal (text UI) application for browsing, copying, searching and
-		editing files on any parley-files file system (local, memory, SFTP, JDBC). The console
+		editing files on any parley-files file system (local, memory, SFTP, FTP, JDBC). The console
 		counterpart of parley-files-viewer.</description>
 
 	<properties>
@@ -102,6 +102,21 @@
 			<artifactId>parley-files-sftp</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+		<!-- parley-files-sftp has no SSH library of its own: the provider for Parley's own one, which it
+		     prefers when it's there (JSch or MINA could be added instead) -->
+		<dependency>
+			<groupId>us.bringardner.parley</groupId>
+			<artifactId>parley-files-sftp-parley-ssh</artifactId>
+			<version>1.0.0</version>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- FTP and FTPS file systems; found at run time like the others -->
+		<dependency>
+			<groupId>us.bringardner.parley</groupId>
+			<artifactId>parley-files-ftp</artifactId>
+			<version>1.0.0</version>
+			<scope>runtime</scope>
+		</dependency>
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-files-jdbc</artifactId>
@@ -111,7 +126,7 @@
 			<!-- The line-oriented version: fsh, with the console's builtins added (FshConsole) -->
 			<groupId>us.bringardner</groupId>
 			<artifactId>fsh</artifactId>
-			<version>1.0.0-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 		<dependency>
 			<!-- The text UI: pure Java, no native code -->

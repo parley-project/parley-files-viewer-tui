@@ -21,7 +21,7 @@ They share one engine: the copy, search, edit and preview code is the same, and 
 you back at the prompt when you quit.
 
 - Java 11 or later, like the other Parley modules
-- Built on parley-files (+ sftp, jdbc), fsh, and [Lanterna](https://github.com/mabe02/lanterna)
+- Built on parley-files (+ sftp with its parley-ssh provider, ftp and jdbc), fsh, and [Lanterna](https://github.com/mabe02/lanterna)
   for the full-screen UI (pure Java, no native code)
 
 ## Building and running

@@ -1,13 +1,13 @@
 # Changelog
 
-## parley-files-console 1.0.0 (unreleased)
+## parley-files-console 1.0.0 (2026-10-21)
 
 First version: terminal ways to browse parley-files file systems, the console counterpart of
 parley-files-viewer, in two styles from one jar.
 
 Full screen (`pfc`):
 
-- Two panes, each on its own file system (local, memory, SFTP, JDBC, or any registered
+- Two panes, each on its own file system (local, memory, SFTP, FTP, JDBC, or any registered
   parley-files module)
 - View (text or hex), edit with `$VISUAL` / `$EDITOR` (remote files are staged locally and
   written back), copy and move between panes with progress and cancel, rename, new directory,
