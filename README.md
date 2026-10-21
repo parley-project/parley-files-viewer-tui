@@ -34,8 +34,8 @@ scripts/pfsh                                       # fsh with the extra builtins
 Or without the scripts:
 
 ```bash
-java -jar target/parley-files-viewer-tui-1.0.0-all.jar [--single] [left-dir] [right-dir]
-java -cp target/parley-files-viewer-tui-1.0.0-all.jar us.bringardner.parley.files.viewer.tui.fsh.FshTui
+java -jar target/parley-files-viewer-tui-1.0.0-SNAPSHOT-all.jar [--single] [left-dir] [right-dir]
+java -cp target/parley-files-viewer-tui-1.0.0-SNAPSHOT-all.jar us.bringardner.parley.files.viewer.tui.fsh.FshTui
 ```
 
 `pfsh` uses JNA for fsh's terminal handling. If you have fsh's native library and `fshexec`
