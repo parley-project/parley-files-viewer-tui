@@ -81,7 +81,7 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `n` F7 | new directory |
 | `d` F8 Delete | delete |
 | `s` | search below this directory, by name (glob) and/or text |
-| `o` | connect this pane to a file system |
+| `o` | connect this pane to a file system (Local in the list does what `x` does) |
 | `x` | disconnect: back to the local home directory |
 | `t` | shell in this directory (local file systems) |
 | `h` | show / hide hidden files |

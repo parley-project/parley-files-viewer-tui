@@ -199,6 +199,9 @@ public class TuiBrowserTest {
 	public void connectsAPaneToAnotherFileSystem() throws Exception {
 		type('o');
 		waitFor(()->text().contains("File system for this pane"), "the file system list");
+		// the local disk is "Local" and the ids are in lower case
+		assertTrue(text().contains("│ Local "), text());
+		assertFalse(text().contains("fileproxy") || text().contains("Jdbc"), text());
 		int idx = Connections.types().indexOf("memory");
 		assertTrue(idx > 0);
 		for(int i=0; i < idx; i++) {

@@ -60,6 +60,14 @@ public final class Connections {
 		return ret;
 	}
 
+	/**
+	 * How a type id is shown in the connect list: "Local" for the local disk (choosing it takes the
+	 * pane back there), else the id in lower case (jdbc, not Jdbc).
+	 */
+	public static String label(String typeId) {
+		return FileProxyFactory.FACTORY_ID.equals(typeId) ? "Local" : typeId.toLowerCase(java.util.Locale.ROOT);
+	}
+
 	/** A new, unconnected factory of this type. */
 	public static FileSourceFactory create(String typeId) throws IOException {
 		FileSourceFactory ret = FileSourceFactory.getFileSourceFactory(typeId);

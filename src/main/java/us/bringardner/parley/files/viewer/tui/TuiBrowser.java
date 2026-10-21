@@ -727,10 +727,12 @@ public class TuiBrowser {
 
 	private void connect() {
 		List<String> types = Connections.types();
-		String type = ListSelectDialog.showDialog(gui, "Connect", "File system for this pane", types.toArray(new String[0]));
-		if( type == null ) {
+		String[] labels = types.stream().map(Connections::label).toArray(String[]::new);
+		String label = ListSelectDialog.showDialog(gui, "Connect", "File system for this pane", labels);
+		if( label == null ) {
 			return;
 		}
+		String type = types.get(java.util.Arrays.asList(labels).indexOf(label));
 		if( type.equals(FileProxyFactory.FACTORY_ID)) {
 			disconnect();
 			return;
