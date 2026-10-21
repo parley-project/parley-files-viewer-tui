@@ -1,6 +1,6 @@
 # Changelog
 
-## parley-files-viewer-tui 1.0.0 (2026-10-21)
+## parley-files-viewer-tui 1.0.0 (unreleased)
 
 First version: parley-files-viewer without a GUI, browsing parley-files file systems in a terminal,
 in two styles from one jar.

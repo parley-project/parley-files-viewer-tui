@@ -13,7 +13,7 @@
 	</parent>
 
 	<artifactId>parley-files-viewer-tui</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>Parley Files Viewer TUI</name>
 	<description>parley-files-viewer without a GUI: a full-screen terminal (text UI) application for
 		browsing, copying, searching and editing files on any parley-files file system (local, memory,
