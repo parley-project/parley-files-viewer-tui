@@ -81,8 +81,8 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `n` F7 | new directory |
 | `d` F8 Delete | delete |
 | `s` | search below this directory, by name (glob) and/or text |
-| `o` | connect this pane to a file system (Local in the list does what `x` does) |
-| `x` | disconnect: back to the local home directory |
+| `o` | connect this pane to a file system, or Local to choose a folder on the local disk |
+| `x` | back to the local disk, where this pane last was there (else home) |
 | `t` | shell in this directory (local file systems) |
 | `h` | show / hide hidden files |
 | `f` | sort by name, size, modified |
@@ -90,6 +90,13 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `q` F10 | quit |
 
 Commands act on the marked entries, or on the one under the cursor when nothing is marked.
+
+The connect form shows only the settings that apply: "Log in with" shows the password field, or
+the key file's, as it changes, and the advanced settings are behind More.... The line under the
+form describes the field you're in. A file (a private key, known hosts) can be typed, chosen
+from a drop-down of the files in that folder (`~/.ssh` to start; Enter opens it), or found with
+Browse.... Start in says which folder to open once connected. Leaving a file system the other
+pane isn't using closes its connection, so pfv asks first.
 
 ## fsh with the browser's builtins (pfsh)
 

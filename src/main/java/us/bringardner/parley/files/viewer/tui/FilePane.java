@@ -131,6 +131,13 @@ public class FilePane extends Panel {
 		return history.current();
 	}
 
+	private FileSource lastLocal;
+
+	/** The last folder this pane showed on the local disk, or null if it hasn't been on it. */
+	public FileSource getLastLocal() {
+		return lastLocal;
+	}
+
 	public FileSourceFactory getFactory() {
 		FileSource dir = getDirectory();
 		return dir == null ? null : dir.getFileSourceFactory();
@@ -335,6 +342,9 @@ public class FilePane extends Panel {
 		FileSource dir = getDirectory();
 		if( dir == null ) {
 			return;
+		}
+		if( FileOps.isLocal(dir)) {
+			lastLocal = dir;
 		}
 		long serial = ++loadSerial;
 		updateHeader();
