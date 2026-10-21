@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console.fsh;
+package us.bringardner.parley.files.viewer.tui.fsh;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Runs fsh with the console's builtins (FshConsole -c SCRIPT) in its own process, as a user
+ * Runs fsh with the TUI's builtins (FshTui -c SCRIPT) in its own process, as a user
  * would, and checks what the builtins print and do.
  */
 public class FshBuiltinsTest {
@@ -64,7 +64,7 @@ public class FshBuiltinsTest {
 		List<String> cmd = new ArrayList<>(Arrays.asList(
 				new File(System.getProperty("java.home"), "bin/java").getPath(),
 				"-cp", System.getProperty("java.class.path"),
-				FshConsole.class.getName(), "-c", script));
+				FshTui.class.getName(), "-c", script));
 		ProcessBuilder pb = new ProcessBuilder(cmd).directory(tmp.toFile()).redirectErrorStream(true);
 		pb.environment().put("EDITOR", editor.getAbsolutePath());
 		pb.environment().remove("VISUAL");

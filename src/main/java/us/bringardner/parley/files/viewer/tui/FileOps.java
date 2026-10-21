@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console;
+package us.bringardner.parley.files.viewer.tui;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +31,7 @@ import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.files.fileproxy.FileProxyFactory;
 
 /**
- * Small helpers the console uses that have nothing to do with the screen: formatting, recursive
+ * Small helpers the TUI uses that have nothing to do with the screen: formatting, recursive
  * delete, and telling a local file from a remote one.
  */
 public final class FileOps {

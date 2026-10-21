@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console;
+package us.bringardner.parley.files.viewer.tui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,14 +46,14 @@ import us.bringardner.parley.files.FileSource;
  * Drives the real browser on a virtual terminal: what it draws, and that the keys do what the
  * help says.
  */
-public class ConsoleBrowserTest {
+public class TuiBrowserTest {
 
 	@TempDir
 	Path tmp;
 
 	private DefaultVirtualTerminal terminal;
 	private TerminalScreen screen;
-	private volatile ConsoleBrowser browser;
+	private volatile TuiBrowser browser;
 	private Thread thread;
 	private FileSource left;
 	private FileSource right;
@@ -75,7 +75,7 @@ public class ConsoleBrowserTest {
 		// Lanterna's GUI thread is the one that creates the GUI, so build it on the thread that runs it
 		java.util.concurrent.CountDownLatch built = new java.util.concurrent.CountDownLatch(1);
 		thread = new Thread(()->{
-			browser = new ConsoleBrowser(screen, left, right);
+			browser = new TuiBrowser(screen, left, right);
 			built.countDown();
 			browser.run();
 		}, "browser");

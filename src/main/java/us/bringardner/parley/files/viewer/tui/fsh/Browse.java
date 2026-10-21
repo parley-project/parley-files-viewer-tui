@@ -18,14 +18,14 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console.fsh;
+package us.bringardner.parley.files.viewer.tui.fsh;
 
 import java.io.IOException;
 
 import us.bringardner.fsh.ShellCommand;
 import us.bringardner.fsh.ShellContext;
 import us.bringardner.parley.files.FileSource;
-import us.bringardner.parley.files.console.ConsoleBrowser;
+import us.bringardner.parley.files.viewer.tui.TuiBrowser;
 
 /** browse: the full-screen two-pane browser, started on fsh's own file tree (mounts included). */
 public class Browse extends ShellCommand {
@@ -72,7 +72,7 @@ public class Browse extends ShellCommand {
 		}
 		FileSource[] end = {null};
 		FshTerminal.run(ctx, screen->{
-			ConsoleBrowser b = new ConsoleBrowser(screen, left, right, a.has('1'));
+			TuiBrowser b = new TuiBrowser(screen, left, right, a.has('1'));
 			b.run();
 			end[0] = b.getActiveDirectory();
 		});

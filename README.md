@@ -12,7 +12,7 @@ It comes in two styles, from one jar, so you can try both:
 
 | | Command | What it is |
 |---|---|---|
-| Full screen | `scripts/pfc` | A Commander-style browser: two panes side by side, or one pane at full width (`w` switches, `--single` starts that way) |
+| Full screen | `scripts/pfv` | A Commander-style browser: two panes side by side, or one pane at full width (`w` switches, `--single` starts that way) |
 | Line oriented | `scripts/pfsh` | [fsh](https://github.com/parley-project/parley-fsh), the bash-compatible shell over any file system, plus `view`, `edit`, `search` and `browse` builtins |
 
 They share one engine: the copy, search, edit and preview code is the same, and `browse` in
@@ -27,7 +27,7 @@ you back at the prompt when you quit.
 
 ```bash
 mvn package
-scripts/pfc [--single] [left-dir] [right-dir]      # full screen
+scripts/pfv [--single] [left-dir] [right-dir]      # full screen
 scripts/pfsh                                       # fsh with the extra builtins
 ```
 
@@ -35,14 +35,14 @@ Or without the scripts:
 
 ```bash
 java -jar target/parley-files-viewer-tui-1.0.0-all.jar [--single] [left-dir] [right-dir]
-java -cp target/parley-files-viewer-tui-1.0.0-all.jar us.bringardner.parley.files.console.fsh.FshConsole
+java -cp target/parley-files-viewer-tui-1.0.0-all.jar us.bringardner.parley.files.viewer.tui.fsh.FshTui
 ```
 
 `pfsh` uses JNA for fsh's terminal handling. If you have fsh's native library and `fshexec`
 (parley-fsh/macos), set `FSH_LIBDIR` to that folder and pfsh uses them, as fsh's own launcher
 does.
 
-## The full-screen browser (pfc)
+## The full-screen browser (pfv)
 
 ```
 > [Local] /home/tony/projects                       [sftp://tony@build:22] /srv/releases
@@ -116,7 +116,7 @@ The builtins are added to fsh's command table before it starts; fsh itself isn't
 
 ## How it maps to parley-files-viewer
 
-| Viewer | pfc | pfsh |
+| Viewer | pfv | pfsh |
 |---|---|---|
 | File table and tree | One or two panes | `ls`, `cd`, `browse` |
 | Remote Session (connection dialog) | `o`: a form built from the factory's `ConnectionSetting`s, so every file system works | `connect` |
@@ -139,13 +139,13 @@ their own:
 - `Connections`: the installed file systems, and connecting to one
 - `FileOps`: formatting, labels and recursive delete
 
-The full-screen UI is `ConsoleBrowser`, `FilePane`, `ConnectDialog` and `Tui`; the fsh builtins
-are in `us.bringardner.parley.files.console.fsh` (`FshConsole` is the launcher). The tests drive
+The full-screen UI is `TuiBrowser`, `FilePane`, `ConnectDialog` and `Tui`; the fsh builtins
+are in `us.bringardner.parley.files.viewer.tui.fsh` (`FshTui` is the launcher). The tests drive
 the full-screen UI on Lanterna's virtual terminal and run the builtins in a real fsh.
 
 ## Not done yet
 
-- `t` in pfc opens your shell only for local directories (pfsh's `browse` covers the other way)
+- `t` in pfv opens your shell only for local directories (pfsh's `browse` covers the other way)
 - A native (GraalVM) build like the viewer's
-- Saved connections / recent sessions in pfc
+- Saved connections / recent sessions in pfv
 - "Open with" another application (the viewer's Launch Services support)

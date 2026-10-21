@@ -1,4 +1,4 @@
-# Sourced by pfc and pfsh: finds the jar and the JVM options.
+# Sourced by pfv and pfsh: finds the jar and the JVM options.
 BIN_DIR=$(cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(dirname "$BIN_DIR")
 JAR=$(ls "$PROJECT_DIR"/target/parley-files-viewer-tui-*-all.jar 2>/dev/null | head -1)

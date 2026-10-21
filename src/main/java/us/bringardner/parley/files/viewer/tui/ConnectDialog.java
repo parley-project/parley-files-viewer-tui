@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console;
+package us.bringardner.parley.files.viewer.tui;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -48,7 +48,7 @@ import us.bringardner.parley.files.ConnectionSetting;
 import us.bringardner.parley.files.FileSourceFactory;
 
 /**
- * The console version of the viewer's connection dialog: a form built from the factory's
+ * The TUI version of the viewer's connection dialog: a form built from the factory's
  * {@link ConnectionSetting}s (text, secret, number, yes/no, choice), so it works for every
  * file system without knowing about any of them.
  */

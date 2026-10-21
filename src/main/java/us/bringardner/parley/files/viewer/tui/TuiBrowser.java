@@ -18,7 +18,7 @@
  *
  *	@author Tony Bringardner
  */
-package us.bringardner.parley.files.console;
+package us.bringardner.parley.files.viewer.tui;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,15 +62,15 @@ import us.bringardner.parley.files.browse.FileEntry;
 import us.bringardner.parley.files.fileproxy.FileProxyFactory;
 
 /**
- * A two-pane, full-screen terminal browser for any parley-files file system: the console
- * counterpart of parley-files-viewer. Each pane can be on a different file system (local on the
+ * A two-pane, full-screen terminal browser for any parley-files file system:
+ * parley-files-viewer without a GUI. Each pane can be on a different file system (local on the
  * left, SFTP on the right, say) and copy and move work between them.
  * <p>
  * Every command has a letter key, because many terminals (macOS Terminal among them) keep some
  * function keys for themselves; the Midnight Commander function keys work too. {@code ?} lists
  * them.
  */
-public class ConsoleBrowser {
+public class TuiBrowser {
 
 	/** The key bar's entries, most useful first; what doesn't fit the width is left off (? lists them all). */
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
@@ -132,7 +132,7 @@ public class ConsoleBrowser {
 	private final Screen screen;
 	private final MultiWindowTextGUI gui;
 	private final ExecutorService worker = Executors.newCachedThreadPool(r->{
-		Thread t = new Thread(r, "console-worker");
+		Thread t = new Thread(r, "tui-worker");
 		t.setDaemon(true);
 		return t;
 	});
@@ -149,7 +149,7 @@ public class ConsoleBrowser {
 	 * @param left what the left pane shows first
 	 * @param right what the right pane shows first
 	 */
-	public ConsoleBrowser(Screen screen, FileSource left, FileSource right) {
+	public TuiBrowser(Screen screen, FileSource left, FileSource right) {
 		this(screen, left, right, false);
 	}
 
@@ -157,7 +157,7 @@ public class ConsoleBrowser {
 	 * @param single start with one pane (the full width) instead of two side by side; the other
 	 *        location is still there, a Tab away
 	 */
-	public ConsoleBrowser(Screen screen, FileSource left, FileSource right, boolean single) {
+	public TuiBrowser(Screen screen, FileSource left, FileSource right, boolean single) {
 		this.screen = screen;
 		this.single = single;
 		this.gui = new MultiWindowTextGUI(screen, TextColor.ANSI.BLACK);
@@ -898,7 +898,7 @@ public class ConsoleBrowser {
 						try {
 							target.go(file.getParentFile(), file.getName());
 						} catch (IOException e) {
-							ConsoleBrowser.this.error("Can't go to "+file.getName(), e);
+							TuiBrowser.this.error("Can't go to "+file.getName(), e);
 						}
 					}));
 				}
@@ -953,7 +953,7 @@ public class ConsoleBrowser {
 		}
 
 		boolean one = single;
-		Tui.run(screen->new ConsoleBrowser(screen, left, right, one).run());
+		Tui.run(screen->new TuiBrowser(screen, left, right, one).run());
 		System.exit(0);
 	}
 }
