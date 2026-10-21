@@ -35,8 +35,8 @@ scripts/pfsh                                       # fsh with the extra builtins
 Or without the scripts:
 
 ```bash
-java -jar target/parley-files-console-1.0.0-SNAPSHOT-all.jar [--single] [left-dir] [right-dir]
-java -cp target/parley-files-console-1.0.0-SNAPSHOT-all.jar us.bringardner.parley.files.console.fsh.FshConsole
+java -jar target/parley-files-console-1.0.0-all.jar [--single] [left-dir] [right-dir]
+java -cp target/parley-files-console-1.0.0-all.jar us.bringardner.parley.files.console.fsh.FshConsole
 ```
 
 `pfsh` uses JNA for fsh's terminal handling. If you have fsh's native library and `fshexec`
