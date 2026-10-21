@@ -212,6 +212,9 @@ public class TuiBrowserTest {
 		waitFor(()->!text().contains("Connect: memory"), "the form to close");
 		// copy from the local right pane into memory works too
 		assertEquals("memory", browser.getPane(0).getFactory().getTypeId());
+		// it opens at the memory file system's root, not at a path that only exists locally
+		assertEquals("/", browser.getPane(0).getDirectory().getAbsolutePath());
+		waitFor(()->text().contains("[memory] / "), "the memory root in the header");
 	}
 
 	@Test
