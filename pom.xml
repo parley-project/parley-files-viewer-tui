@@ -13,7 +13,6 @@
 	</parent>
 
 	<artifactId>parley-files-viewer-tui</artifactId>
-	<version>2.0.0-SNAPSHOT</version>
 	<name>Parley Files Viewer TUI</name>
 	<description>parley-files-viewer without a GUI: a full-screen terminal (text UI) application for
 		browsing, copying, searching and editing files on any parley-files file system (local, memory,
@@ -84,43 +83,43 @@
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-core</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-io</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<!-- FileSource, the factories and the toolkit-neutral browse package -->
 			<artifactId>parley-files</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-files-sftp</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<!-- parley-files-sftp has no SSH library of its own: the provider for Parley's own one, which it
 		     prefers when it's there (JSch or MINA could be added instead) -->
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-files-sftp-parley-ssh</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 		<!-- FTP and FTPS file systems; found at run time like the others -->
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-files-ftp</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-files-jdbc</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<!-- The line-oriented version: fsh, with the TUI's builtins added (FshTui) -->
