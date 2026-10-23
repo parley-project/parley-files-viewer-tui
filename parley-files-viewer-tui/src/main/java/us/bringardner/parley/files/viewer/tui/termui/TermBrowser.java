@@ -75,7 +75,7 @@ public class TermBrowser implements Tui.App {
 	}
 
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
-			"d delete", "n mkdir", "r rename", "s search", "o connect", "D disconnect", "t shell", "g goto", "h hidden"};
+			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden"};
 
 	static final String HELP = String.join("\n",
 			"Moving around",
@@ -107,7 +107,7 @@ public class TermBrowser implements Tui.App {
 			"  s                            search below this directory (name and/or text)",
 			"  o                            connect this pane to a file system (SFTP, JDBC, ...), or Local",
 			"  x                            back to the local disk, where this pane last was there",
-			"  D                            disconnect a connection (in fsh: one of the shell's)",
+			"  D                            disconnect the connection under the cursor (elsewhere: choose one)",
 			"  t                            shell in this directory (local file systems)",
 			"  h                            show / hide hidden files",
 			"  f                            sort by name, size, modified",
@@ -274,7 +274,7 @@ public class TermBrowser implements Tui.App {
 				case 's': search(); return true;
 				case 'o': connect(); return true;
 				case 'x': disconnect(); return true;
-				case 'D': disconnectChosen(); return true;
+				case 'D': disconnectKey(); return true;
 				case 't': shell(); return true;
 				case 'g': gotoPath(); return true;
 				case 'h': pane().setShowHidden(!pane().isShowHidden()); return true;
@@ -339,14 +339,23 @@ public class TermBrowser implements Tui.App {
 			panes[1].render(screen, panesArea.cols(left+1, area.width-left-1), null);
 		}
 		screen.line(area.row(area.height-2), status, Theme.NORMAL);
-		screen.line(area.row(area.height-1), keyBar(area.width), Theme.HINT);
+		screen.line(area.row(area.height-1), keyBar(area.width, pane().connectionUnderCursor() != null), Theme.HINT);
 		dialogs.render(screen);
 	}
 
 	/** As many of the keys as fit. */
 	static String keyBar(int width) {
+		return keyBar(width, false);
+	}
+
+	/** As many of the keys as fit; with D disconnect after o connect when the cursor is on a connection. */
+	static String keyBar(int width, boolean onConnection) {
 		StringBuilder b = new StringBuilder();
-		for(String k : KEY_BAR) {
+		List<String> keys = new ArrayList<>(Arrays.asList(KEY_BAR));
+		if( onConnection ) {
+			keys.add(keys.indexOf("o connect")+1, "D disconnect");
+		}
+		for(String k : keys) {
 			if( b.length()+k.length()+2 > width ) {
 				break;
 			}
@@ -877,6 +886,37 @@ public class TermBrowser implements Tui.App {
 	}
 
 	/** D: choose one of the tree's connections (in fsh, the shell's) and disconnect it */
+	/** D: the connection under the cursor, after a confirm; elsewhere, choose one from the list */
+	private void disconnectKey() {
+		String path = pane().connectionUnderCursor();
+		FileSource top = path == null ? null : connections.list().get(path);
+		if( top == null ) {
+			disconnectChosen();
+			return;
+		}
+		dialogs.open(new Dialog.Confirm("Disconnect", "Disconnect "+path+"  ("+FileOps.describe(top.getFileSourceFactory())+")?",
+				()->disconnectPath(path), null));
+	}
+
+	private void disconnectPath(String path) {
+		us.bringardner.parley.files.viewer.tui.HostConnections hc = connections;
+		worker.execute(()->{
+			try {
+				hc.disconnect(path);
+				ui.execute(()->{
+					leave(p->p.getDirectory().getAbsolutePath().equals(path) || p.getDirectory().getAbsolutePath().startsWith(path+"/"));
+					// a pane showing the folder it was in lists it no longer
+					for(int i=0; i < panes.length; i++) {
+						panes[i].refreshQuietly();
+					}
+					setStatus("Disconnected "+path);
+				});
+			} catch (IOException e2) {
+				ui.execute(()->error("Can't disconnect "+path, e2));
+			}
+		});
+	}
+
 	private void disconnectChosen() {
 		us.bringardner.parley.files.viewer.tui.HostConnections hc = connections;
 		List<String> labels = new ArrayList<>();
@@ -884,21 +924,7 @@ public class TermBrowser implements Tui.App {
 		for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
 			String path = e.getKey();
 			labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
-			actions.add(()->worker.execute(()->{
-				try {
-					hc.disconnect(path);
-					ui.execute(()->{
-						leave(p->p.getDirectory().getAbsolutePath().equals(path) || p.getDirectory().getAbsolutePath().startsWith(path+"/"));
-						// a pane showing the folder it was in lists it no longer
-						for(int i=0; i < panes.length; i++) {
-							panes[i].refreshQuietly();
-						}
-						setStatus("Disconnected "+path);
-					});
-				} catch (IOException e2) {
-					ui.execute(()->error("Can't disconnect "+path, e2));
-				}
-			}));
+			actions.add(()->disconnectPath(path));
 		}
 		if( labels.isEmpty()) {
 			setStatus("Nothing is connected");

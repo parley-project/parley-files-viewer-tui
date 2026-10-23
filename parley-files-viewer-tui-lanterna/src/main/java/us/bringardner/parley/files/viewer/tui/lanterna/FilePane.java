@@ -558,6 +558,13 @@ public class FilePane extends Panel {
 	}
 
 	/** One line about the entry under the cursor, for the status bar. */
+	/** the path of the connection under the cursor, or null (it isn't one) */
+	public String connectionUnderCursor() {
+		FileEntry e = getCurrent();
+		us.bringardner.parley.files.viewer.tui.EntryMarks.Mark m = e == null ? null : marks.get(e.getName());
+		return m != null && m.connection ? e.getFile().getAbsolutePath().replace('\\', '/') : null;
+	}
+
 	public String describeCurrent() {
 		FileEntry e = getCurrent();
 		if( e == null ) {

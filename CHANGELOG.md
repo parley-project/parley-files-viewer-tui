@@ -24,6 +24,9 @@
   file system at a path (**Connect at**), a path means one place in either pane, Go to asks for a
   Path, and going up leaves a connection for the folder it's in. Connections stay until `D` or
   quitting (leaving one no longer asks to close it). (Both browsers.)
+- **`D` disconnects the connection under the cursor**, after a confirm (elsewhere it lists them to
+  choose from), and the key bar shows `D disconnect` only then. After a disconnect both panes read
+  their folders again, so the connection leaves the listing it was in. (Both browsers.)
 - **Connections and links are marked**: in the Size column a connection shows its file system
   (`<sftp>`, `<memory>`) and a local symbolic link `<LINK>`, where a folder shows `<DIR>`; the status
   line says what it points at (`mem -> memory`), as fsh's `ls -l` does. (Both browsers.)

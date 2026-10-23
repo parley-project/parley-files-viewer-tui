@@ -809,21 +809,31 @@ public class TermBrowserTest {
 		assertTrue(b.getStatus().startsWith("memory -> memory"), b.getStatus());
 	}
 
-	/** After D disconnects one, a pane showing the folder it was in no longer lists it; the key bar shows D. */
+	/**
+	 * D on a connection disconnects it, after a confirm, and a pane showing the folder it was in no
+	 * longer lists it. The key bar shows D disconnect only with the cursor on a connection;
+	 * elsewhere D lists the connections to choose from.
+	 */
 	@Test
-	public void aDisconnectedOneLeavesTheListing() throws Exception {
-		assertTrue(TermBrowser.keyBar(500).contains("o connect  D disconnect"), TermBrowser.keyBar(500));
+	public void dOnAConnectionDisconnectsIt() throws Exception {
+		assertFalse(TermBrowser.keyBar(500).contains("D disconnect"), TermBrowser.keyBar(500));
+		assertTrue(TermBrowser.keyBar(500, true).contains("o connect  D disconnect"), TermBrowser.keyBar(500, true));
 		connectTo("memory");
 		key(Key.Code.ENTER);
 		pumpUntil(()->lines().get(0).startsWith("> [memory] /memory"));
 		pumpIdle();
-		key(Key.Code.LEFT);
+		// elsewhere (inside it): D lists them
+		ch('D');
+		assertScreen("Disconnect", "Connections", "/memory  (");
+		while( b.hasDialog()) {
+			key(Key.Code.ESC);
+		}
+		key(Key.Code.LEFT); // up to /, the cursor on memory/
 		pumpUntil(()->screen().contains("memory/"));
 		pumpIdle();
+		assertTrue(b.getStatus().startsWith("memory -> memory"), b.getStatus());
 		ch('D');
-		assertScreen("Disconnect", "/memory  (");
-		key(Key.Code.ENTER);
-		assertScreen("Disconnect /memory");
+		assertScreen("Disconnect /memory (memory)?");
 		ch('y');
 		pumpUntil(()->b.getStatus().startsWith("Disconnected /memory"));
 		pumpUntil(()->!screen().contains("memory/"));
