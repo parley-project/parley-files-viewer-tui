@@ -28,8 +28,8 @@ import us.bringardner.parley.files.FileSource;
 
 /**
  * The connections of the program the browser runs in (fsh's connect and disconnect): a file system
- * connected in the browser is connected there, so it stays after the browser ends. Standalone, the
- * browser has none.
+ * connected in the browser is connected there, so it stays after the browser ends. On its own the
+ * browser has a tree of its own ({@link TreeConnections}), which ends with it.
  */
 public interface HostConnections {
 

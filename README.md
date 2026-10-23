@@ -70,6 +70,12 @@ README.md  4.1 K  2026-10-15 12:41
 Tab pane  w layout  v view  e edit  c copy  m move  d delete  n mkdir  r rename  s search  ? help  q quit
 ```
 
+The browser has one file tree, as fsh's shell does: the local disk, and each file system you
+connect (`o`) at the path in the connect form's **Connect at** field (`/sftp-build`, say). A
+path means one place whichever pane you're in, `g` and copy destinations take any path in the
+tree, and going up from a connection leads back to the folder it's in. Connections stay until
+`D` disconnects one or you quit, which closes them all.
+
 Each pane can be on its own file system; copy and move work between any two of them. In the
 one-pane layout the second location is still there: Tab switches between them, and copy and
 move ask for the destination (suggesting the other location).
@@ -116,8 +122,8 @@ The connect form shows only the settings that apply: "Log in with" shows the pas
 the key file's, as it changes, and the advanced settings are behind More.... The line under the
 form describes the field you're in. A file (a private key, known hosts) can be typed, chosen
 from a drop-down of the files in that folder (`~/.ssh` to start; Enter opens it), or found with
-Browse.... Start in says which folder to open once connected. Leaving a file system the other
-pane isn't using closes its connection, so pfv asks first.
+Browse.... Start in says which folder to open once connected, and Connect at where in the tree
+the file system goes.
 
 ## In fsh (the plugin)
 
@@ -143,7 +149,8 @@ browse -c /build
 In fsh, a file system you connect in the browser (`o`) is connected in the shell too, at the
 path in the form's **Connect at** field (`/sftp-build`, say): it stays when you quit, `ls`, `cd`
 and `browse -c` reach it, and fsh's `disconnect` closes it. `D` in the browser lists the shell's
-connections and disconnects one. On its own (`pfv`), `D` lists the browser's own.
+connections and disconnects one. It's the same tree `pfv` has on its own, except that the
+shell's outlives the browser.
 
 fsh finds them in its plugin folder as it starts (its `CommandProvider` and `BrowserProvider`); fsh itself has no dependency on this module.
 

@@ -67,7 +67,7 @@ public class TermBrowser implements Tui.App {
 		/** Give the terminal to a program (an editor, a shell) and take it back when it exits. */
 		int runProgram(List<String> command, File dir) throws IOException;
 
-		/** the connections of the program the browser runs in (fsh's), or null: standalone */
+		/** the file tree of the program the browser runs in (fsh's), or null: the browser makes its own */
 		default us.bringardner.parley.files.viewer.tui.HostConnections connections() {
 			return null;
 		}
@@ -118,6 +118,12 @@ public class TermBrowser implements Tui.App {
 	private final Executor worker;
 	private final Executor ui;
 	private final Host host;
+	/**
+	 * The file tree the panes are in: the shell's in fsh; else the browser's own (pfv), whose
+	 * connections close when it quits. Either way a path means one place, connections included.
+	 */
+	private final us.bringardner.parley.files.viewer.tui.HostConnections connections;
+	private final us.bringardner.parley.files.viewer.tui.TreeConnections ownTree;
 	private final TermPane[] panes = new TermPane[2];
 	private final Dialog.Stack dialogs = new Dialog.Stack();
 	private int active;
@@ -136,6 +142,18 @@ public class TermBrowser implements Tui.App {
 		this.worker = worker;
 		this.ui = ui;
 		this.host = host;
+		us.bringardner.parley.files.viewer.tui.HostConnections given = host.connections();
+		if( given != null ) {
+			connections = given;
+			ownTree = null;
+		} else {
+			try {
+				ownTree = new us.bringardner.parley.files.viewer.tui.TreeConnections();
+			} catch (IOException e) {
+				throw new java.io.UncheckedIOException(e);
+			}
+			connections = ownTree;
+		}
 		this.single = single;
 		for(int i=0; i < 2; i++) {
 			int idx = i;
@@ -219,6 +237,10 @@ public class TermBrowser implements Tui.App {
 	/** End the session. */
 	public void quit() {
 		done = true;
+		if( ownTree != null ) {
+			// the browser's own connections end with it (fsh's stay: they're the shell's)
+			ownTree.disconnectAll();
+		}
 	}
 
 	/** One key; true when the screen should be drawn again. */
@@ -541,11 +563,7 @@ public class TermBrowser implements Tui.App {
 			return null;
 		}
 		try {
-			us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
-			FileSource dir = hc != null && path.startsWith("/") ? hc.file(path)
-					: path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*")
-					? suggested.getFileSourceFactory().createFileSource(path)
-					: pane().getDirectory().getChild(path);
+			FileSource dir = isAbsolute(path) ? connections.file(path) : pane().getDirectory().getChild(path);
 			if( !dir.isDirectory()) {
 				setStatus(path+" is not a directory");
 				return null;
@@ -689,13 +707,11 @@ public class TermBrowser implements Tui.App {
 	}
 
 	/**
-	 * g: go to a path. In fsh it's a path in the shell's file tree, so its connections are there
-	 * (/mem); standalone, a path on the pane's file system. A relative path is from the pane's folder.
+	 * g: go to a path in the browser's file tree (fsh's, or its own), so the connections are
+	 * there (/mem). A relative path is from the pane's folder.
 	 */
 	private void gotoPath() {
-		// (in fsh there's one tree, so the pane's file system doesn't matter; standalone it does)
-		String label = host.connections() != null ? "Path" : "Path on "+Connections.label(pane().getFactory().getTypeId());
-		Dialog.Prompt prompt = new Dialog.Prompt("Go to", label,
+		Dialog.Prompt prompt = new Dialog.Prompt("Go to", "Path",
 				pane().getDirectory().getAbsolutePath(), path->{
 					if( path.trim().isEmpty()) {
 						return;
@@ -717,31 +733,32 @@ public class TermBrowser implements Tui.App {
 		dialogs.open(prompt);
 	}
 
-	/** a path typed in g: in fsh, in the shell's file tree; standalone, on the pane's file system */
+	/** a path typed in g, in the browser's file tree; a relative one is from the pane's folder */
 	private FileSource resolve(String path) throws IOException {
-		us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
-		if( hc == null ) {
-			return pane().getFactory().createFileSource(path);
-		}
-		if( !path.startsWith("/")) {
+		if( !isAbsolute(path)) {
 			String dir = pane().getDirectory().getAbsolutePath();
-			path = (dir.endsWith("/") ? dir : dir+"/")+path;
+			String sep = dir.indexOf('/') < 0 && dir.indexOf('\\') >= 0 ? "\\" : "/";
+			path = (dir.endsWith("/") || dir.endsWith("\\") ? dir : dir+sep)+path;
 		}
-		return hc.file(path);
+		return connections.file(path);
+	}
+
+	/** an absolute path: / (or \ on Windows) at the start, a drive (C:\, C:/) or a share (\\\\server) */
+	public static boolean isAbsolute(String path) {
+		return path.startsWith("/") || path.startsWith("\\") || path.matches("^[A-Za-z]:([\\\\/].*)?");
 	}
 
 	/**
-	 * A folder as the panes show it: in fsh, a local folder is the same folder in the shell's file
-	 * tree, so the shell's connections are listed in it and above it (going up from a local folder
-	 * with no connection under it reached the local disk's / without them); standalone, as it is.
+	 * A folder as the panes show it: a local folder is the same folder in the browser's file tree,
+	 * so the connections are listed in it and above it (going up from a local folder with no
+	 * connection under it would reach the local disk's / without them).
 	 */
 	private FileSource inHost(FileSource local) {
-		us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
-		if( hc == null || !FileOps.isLocal(local)) {
+		if( !FileOps.isLocal(local)) {
 			return local;
 		}
 		try {
-			return hc.file(local.getAbsolutePath().replace('\\', '/'));
+			return connections.file(local.getAbsolutePath().replace('\\', '/'));
 		} catch (IOException e) {
 			return local;
 		}
@@ -773,12 +790,6 @@ public class TermBrowser implements Tui.App {
 
 	// ---------------------------------------------------------------- connections
 
-	/**
-	 * The file systems this browser connected to itself (o): the only ones it may disconnect.
-	 * Others are its caller's (fsh's mounts), so leaving one just leaves it.
-	 */
-	private final java.util.Set<FileSourceFactory> opened = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-
 	private void connect() {
 		List<String> types = Connections.types();
 		List<String> labels = new ArrayList<>();
@@ -792,7 +803,7 @@ public class TermBrowser implements Tui.App {
 				goLocal(target);
 				return;
 			}
-			mayLeave(target, ()->{
+			{
 				FileSourceFactory factory;
 				try {
 					factory = Connections.create(type);
@@ -800,8 +811,8 @@ public class TermBrowser implements Tui.App {
 					error("Can't connect", e);
 					return;
 				}
-				us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
-				dialogs.open(ConnectForm.create(factory, dialogs, hc == null ? null : hc.list().keySet(), (values, startIn, connectAt)->{
+				us.bringardner.parley.files.viewer.tui.HostConnections hc = connections;
+				dialogs.open(ConnectForm.create(factory, dialogs, hc.list().keySet(), (values, startIn, connectAt)->{
 					String label = labels.get(idx);
 					setStatus("Connecting to "+label+" ...");
 					worker.execute(()->{
@@ -812,18 +823,14 @@ public class TermBrowser implements Tui.App {
 								try {
 									start = Connections.startIn(factory, startIn);
 								} catch (IOException e) {
-									note = e.getMessage()+"; opened "+start.getAbsolutePath();
+									note = e.getMessage();
 								}
 							}
-							FileSource dir = hc == null ? start : connectInHost(hc, factory, start, connectAt);
-							String message = note;
+							FileSource dir = connectInHost(hc, factory, start, connectAt);
+							String message = note == null ? null : note+"; opened "+dir.getAbsolutePath();
 							ui.execute(()->{
-								if( hc == null ) {
-									opened.add(factory);
-								} else {
-									setStatus(label+" connected at "+connectAt);
-								}
-								switchTo(target, dir);
+								setStatus(label+" connected at "+connectAt);
+								target.go(dir);
 								if( message != null ) {
 									dialogs.open(new Dialog.Message("Start in", message));
 								}
@@ -837,7 +844,7 @@ public class TermBrowser implements Tui.App {
 						}
 					});
 				}));
-			});
+			}
 		}, null));
 	}
 
@@ -868,49 +875,31 @@ public class TermBrowser implements Tui.App {
 		return hc.file(under ? path+"/"+rel.replace('\\', '/') : path);
 	}
 
-	/** D: choose a connection and disconnect it (in fsh, the shell's; standalone, this browser's) */
+	/** D: choose one of the tree's connections (in fsh, the shell's) and disconnect it */
 	private void disconnectChosen() {
-		us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
+		us.bringardner.parley.files.viewer.tui.HostConnections hc = connections;
 		List<String> labels = new ArrayList<>();
 		List<Runnable> actions = new ArrayList<>();
-		if( hc != null ) {
-			for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
-				String path = e.getKey();
-				labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
-				actions.add(()->worker.execute(()->{
-					try {
-						hc.disconnect(path);
-						ui.execute(()->{
-							leave(p->p.getDirectory().getAbsolutePath().equals(path) || p.getDirectory().getAbsolutePath().startsWith(path+"/"));
-							setStatus("Disconnected "+path);
-						});
-					} catch (IOException e2) {
-						ui.execute(()->error("Can't disconnect "+path, e2));
-					}
-				}));
-			}
-		} else {
-			for(FileSourceFactory f : new ArrayList<>(opened)) {
-				labels.add(FileOps.describe(f));
-				actions.add(()->{
-					opened.remove(f);
-					leave(p->p.getFactory() == f);
-					worker.execute(()->{
-						try {
-							f.disConnect();
-						} catch (IOException e2) {
-							// it's being let go anyway
-						}
+		for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
+			String path = e.getKey();
+			labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
+			actions.add(()->worker.execute(()->{
+				try {
+					hc.disconnect(path);
+					ui.execute(()->{
+						leave(p->p.getDirectory().getAbsolutePath().equals(path) || p.getDirectory().getAbsolutePath().startsWith(path+"/"));
+						setStatus("Disconnected "+path);
 					});
-					setStatus("Disconnected "+FileOps.describe(f));
-				});
-			}
+				} catch (IOException e2) {
+					ui.execute(()->error("Can't disconnect "+path, e2));
+				}
+			}));
 		}
 		if( labels.isEmpty()) {
 			setStatus("Nothing is connected");
 			return;
 		}
-		dialogs.open(new Dialog.Choose("Disconnect", hc != null ? "The shell's connections" : "This browser's connections",
+		dialogs.open(new Dialog.Choose("Disconnect", ownTree == null ? "The shell's connections" : "Connections",
 				labels, 64, idx->dialogs.open(new Dialog.Confirm("Disconnect", "Disconnect "+labels.get(idx)+"?",
 						actions.get(idx), null)), null));
 	}
@@ -928,16 +917,14 @@ public class TermBrowser implements Tui.App {
 		}
 	}
 
-	/** x: back to the local disk, where this pane last was there (else home), asking before a connection is closed. */
+	/** x: back to the local disk, where this pane last was there (else home); connections stay (D disconnects) */
 	private void disconnect() {
 		TermPane target = pane();
-		mayLeave(target, ()->{
-			try {
-				switchTo(target, localStart(target));
-			} catch (IOException e) {
-				error("Can't open the local folder", e);
-			}
-		});
+		try {
+			target.go(localStart(target));
+		} catch (IOException e) {
+			error("Can't open the local folder", e);
+		}
 	}
 
 	/** Local in the connect list: which local folder, typed or chosen with Browse... */
@@ -970,7 +957,7 @@ public class TermBrowser implements Tui.App {
 				if( !dir.isDirectory()) {
 					return path.value().trim()+" isn't a folder";
 				}
-				mayLeave(target, ()->switchTo(target, dir));
+				target.go(dir);
 				return null;
 			} catch (IOException e) {
 				return "Can't open "+path.value()+": "+e.getMessage();
@@ -982,38 +969,6 @@ public class TermBrowser implements Tui.App {
 	private FileSource localStart(TermPane target) throws IOException {
 		FileSource last = target.getLastLocal();
 		return last != null && last.isDirectory() ? last : FileOps.localHome();
-	}
-
-	/**
-	 * Go on if the pane may leave its file system: yes for one this browser didn't connect to (the
-	 * local disk, the caller's mounts), or one the other pane uses too; otherwise leaving closes
-	 * the connection, so ask.
-	 */
-	private void mayLeave(TermPane target, Runnable go) {
-		FileSourceFactory current = target.getFactory();
-		TermPane otherPane = target == panes[0] ? panes[1] : panes[0];
-		if( current == null || !opened.contains(current) || otherPane.getFactory() == current ) {
-			go.run();
-			return;
-		}
-		dialogs.open(new Dialog.Confirm("Disconnect", "Disconnect from "+FileOps.describe(current)
-				+"? No other pane uses it.", go, null));
-	}
-
-	/** Show dir in pane, and disconnect the file system the pane was on if this browser opened it and it's now unused. */
-	private void switchTo(TermPane target, FileSource dir) {
-		FileSourceFactory old = target.getFactory();
-		target.go(dir);
-		TermPane otherPane = target == panes[0] ? panes[1] : panes[0];
-		if( old != null && old != dir.getFileSourceFactory() && old != otherPane.getFactory() && opened.remove(old)) {
-			worker.execute(()->{
-				try {
-					old.disConnect();
-				} catch (IOException e) {
-					// it's being let go anyway
-				}
-			});
-		}
 	}
 
 	// ---------------------------------------------------------------- windows of its own

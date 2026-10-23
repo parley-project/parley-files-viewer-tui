@@ -102,7 +102,7 @@ public final class TermMain {
 
 	/**
 	 * Runs the browser on terminal until it's quit, in a host with connections (fsh's: what is
-	 * connected in the browser is connected there), or none (null).
+	 * connected in the browser is connected there), or null for a tree of the browser's own.
 	 */
 	public static FileSource run(FileSource left, FileSource right, boolean single, Terminal terminal,
 			us.bringardner.parley.files.viewer.tui.HostConnections connections) throws Exception {

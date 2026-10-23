@@ -736,13 +736,48 @@ public class TermBrowserTest {
 		assertFalse(b.hasDialog());
 	}
 
-	/** Standalone, g names the pane's file system as its header does: Local, not fileproxy. */
+	/**
+	 * On its own (pfv) the browser has a file tree of its own, as fsh's: o connects at a path
+	 * (Connect at), the connection is listed in the folder it's in and g reaches it, D lists it, and
+	 * quitting closes it. Go to asks for a Path (one tree), never for a file system.
+	 */
 	@Test
-	public void gotoNamesThePanesFileSystem() {
+	public void onItsOwnTheBrowserHasATreeLikeFshs() throws Exception {
 		ch('g');
-		assertScreen("Go to", "Path on Local");
+		assertScreen("Go to", "Path");
+		assertFalse(screen().contains("Path on"), screen());
 		assertFalse(screen().contains("fileproxy"), screen());
 		key(Key.Code.ESC);
+		connectTo("memory");
+		assertScreen("Connect: memory", "Connect at", "/memory");
+		key(Key.Code.ENTER);
+		pumpUntil(()->lines().get(0).startsWith("> [memory] /memory"));
+		pumpIdle();
+		FileSourceFactory mem = b.getActiveDirectory().getFileSourceFactory();
+		assertTrue(mem.isConnected());
+		assertEquals("/memory", b.getActiveDirectory().getAbsolutePath());
+		// up: it's in /, beside the local disk's folders
+		key(Key.Code.LEFT);
+		pumpUntil(()->screen().contains("memory/") && screen().contains("tmp/"));
+		pumpIdle();
+		// x and back with g: still connected (only D or quitting closes it)
+		ch('x');
+		pumpIdle();
+		ch('g');
+		b.key(Key.ctrl('u'));
+		type("/memory");
+		key(Key.Code.ENTER);
+		pumpUntil(()->b.getActiveDirectory().getAbsolutePath().equals("/memory"));
+		assertTrue(mem.isConnected());
+		ch('D');
+		assertScreen("Disconnect", "Connections", "/memory  (");
+		key(Key.Code.ESC);
+		while( b.hasDialog()) {
+			key(Key.Code.ESC);
+		}
+		ch('q');
+		assertTrue(b.isDone());
+		assertFalse(mem.isConnected());
 	}
 
 	/** A browser in a real fsh shell, as fsh's browse runs it: the host's connections are the shell's. */

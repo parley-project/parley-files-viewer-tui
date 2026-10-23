@@ -137,9 +137,9 @@ final class TermPane {
 	}
 
 	/**
-	 * How a folder the pane goes to is shown: in fsh, as the shell's file tree has it, so its
-	 * connections are listed (a local folder with none under it is a plain local folder in fsh,
-	 * and so is its parent); standalone, as it is.
+	 * How a folder the pane goes to is shown: as the browser's file tree has it, so its
+	 * connections are listed (a local folder with none under it is a plain local folder, and so is
+	 * its parent).
 	 */
 	void setFolders(java.util.function.UnaryOperator<FileSource> folders) {
 		this.folders = folders;
