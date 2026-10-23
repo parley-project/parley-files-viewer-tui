@@ -67,6 +67,7 @@ public final class SearchJob implements Runnable {
 	private final Listener listener;
 	private long maxTextSize = DEFAULT_MAX_TEXT_SIZE;
 	private volatile boolean canceled;
+	private volatile java.util.function.BooleanSupplier stopWhen;
 	private int matches;
 
 	/**
@@ -96,12 +97,28 @@ public final class SearchJob implements Runnable {
 		return canceled;
 	}
 
+	/**
+	 * Also stop when stop says so, checked as the search goes (between files and as a file is
+	 * read): for a caller that is told to stop another way (Ctrl-C in fsh).
+	 */
+	public void cancelWhen(java.util.function.BooleanSupplier stop) {
+		this.stopWhen = stop;
+	}
+
+	private boolean stopped() {
+		java.util.function.BooleanSupplier s = stopWhen;
+		if( !canceled && s != null && s.getAsBoolean()) {
+			canceled = true;
+		}
+		return canceled;
+	}
+
 	@Override
 	public void run() {
 		Deque<FileSource> dirs = new ArrayDeque<>();
 		dirs.add(root);
 		try {
-			while( !dirs.isEmpty() && !canceled ) {
+			while( !dirs.isEmpty() && !stopped() ) {
 				FileSource dir = dirs.poll();
 				listener.searching(dir);
 				FileSource[] kids;
@@ -115,7 +132,7 @@ public final class SearchJob implements Runnable {
 					continue;
 				}
 				for(FileSource kid : kids) {
-					if( canceled ) {
+					if( stopped() ) {
 						break;
 					}
 					try {
@@ -156,7 +173,7 @@ public final class SearchJob implements Runnable {
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 			String line;
 			while( (line = in.readLine()) != null ) {
-				if( canceled ) {
+				if( stopped() ) {
 					return null;
 				}
 				String test = ignoreCase ? line.toLowerCase(Locale.ROOT) : line;
