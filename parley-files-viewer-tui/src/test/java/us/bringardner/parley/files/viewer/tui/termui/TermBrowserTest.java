@@ -601,7 +601,7 @@ public class TermBrowserTest {
 	}
 
 	/**
-	 * A file system the caller gave the browser (fsh's connect mount) is not the browser's to close:
+	 * A file system the caller gave the browser (a connection in fsh) is not the browser's to close:
 	 * leaving it doesn't ask and doesn't disconnect it.
 	 */
 	@Test
@@ -794,7 +794,7 @@ public class TermBrowserTest {
 
 			@Override
 			public boolean connect(String path, FileSource top) throws IOException {
-				return console.mount(top, path);
+				return console.connectAt(top, path);
 			}
 
 			@Override
@@ -829,7 +829,7 @@ public class TermBrowserTest {
 		m.connect(new java.util.Properties());
 		FileSource top = m.listRoots()[0];
 		write(top.getChild("inmem.txt"), "in memory\n");
-		assertTrue(console.mount(top, tmpPath()+"/conn"));
+		assertTrue(console.connectAt(top, tmpPath()+"/conn"));
 		return console;
 	}
 
@@ -914,7 +914,7 @@ public class TermBrowserTest {
 		us.bringardner.fsh.Console console = new us.bringardner.fsh.Console();
 		us.bringardner.parley.files.memory.MemoryFileSourceFactory m = new us.bringardner.parley.files.memory.MemoryFileSourceFactory();
 		m.connect(new java.util.Properties());
-		assertTrue(console.mount(m.listRoots()[0], tmpPath()+"/conn2"));
+		assertTrue(console.connectAt(m.listRoots()[0], tmpPath()+"/conn2"));
 		return console;
 	}
 }

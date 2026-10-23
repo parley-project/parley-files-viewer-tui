@@ -29,7 +29,7 @@ import us.bringardner.fsh.ShellContext;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.viewer.tui.SearchJob;
 
-/** search: files below directories by name and/or contents, on any mounted file system. */
+/** search: files below directories by name and/or contents, on any connected file system. */
 public class Search extends ShellCommand {
 
 	static final String NAME = "search";
@@ -37,7 +37,7 @@ public class Search extends ShellCommand {
 			+ "\tList the files below each DIR (default .) whose name matches the glob NAME and that\n"
 			+ "\tcontain TEXT; with neither, every file and directory. Paths are printed as find prints\n"
 			+ "\tthem (starting with DIR), followed by the first matching line for a text search.\n"
-			+ "\tWorks the same on every mounted file system. Files over 32 MB aren't searched for text.\n"
+			+ "\tWorks the same on every connected file system. Files over 32 MB aren't searched for text.\n"
 			+ "\t-n NAME   file name glob (* ? [abc]); quote it so the shell doesn't expand it\n"
 			+ "\t-t TEXT   text the file must contain\n"
 			+ "\t-i        ignore case (in NAME and TEXT)\n"

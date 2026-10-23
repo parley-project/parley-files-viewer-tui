@@ -30,7 +30,7 @@ import us.bringardner.parley.files.FileSource;
 
 /**
  * The Lanterna browser for fsh's browse (browse --with lanterna): the two-pane browser on the
- * shell's own file tree (mounts included). fsh lends it the terminal while it runs, as it does a
+ * shell's own file tree (connections included). fsh lends it the terminal while it runs, as it does a
  * program it starts.
  */
 public class LanternaBrowser implements BrowserProvider {

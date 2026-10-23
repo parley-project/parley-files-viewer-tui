@@ -438,8 +438,8 @@ public class FilePane extends Panel {
 
 	/**
 	 * The directory's entries. Uses the plain listFiles() rather than DirectoryListing.list (which
-	 * calls listFiles(progress)): some FileSources implement only the plain one, fsh's mount
-	 * points among them, and fsh shows mounted files under their mount paths only through it.
+	 * calls listFiles(progress)): some FileSources implement only the plain one, and a file tree
+	 * (fsh's, the browser's own) lists its connections only through it.
 	 */
 	static List<FileEntry> list(FileSource dir) throws IOException {
 		FileSource[] kids = dir.listFiles();

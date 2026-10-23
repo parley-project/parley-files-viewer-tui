@@ -29,12 +29,12 @@ import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.viewer.tui.EditSession;
 import us.bringardner.parley.files.viewer.tui.FileOps;
 
-/** edit: any file, on any mounted file system, with $VISUAL / $EDITOR. */
+/** edit: any file, on any connected file system, with $VISUAL / $EDITOR. */
 public class Edit extends ShellCommand {
 
 	static final String NAME = "edit";
 	static final String HELP = "edit FILE\n"
-			+ "\tEdit FILE with $VISUAL, else $EDITOR, else vi. A file on a mounted remote file system\n"
+			+ "\tEdit FILE with $VISUAL, else $EDITOR, else vi. A file on a connected remote file system\n"
 			+ "\t(connect) is copied to a temporary local file for the editor and copied back if it was\n"
 			+ "\tsaved; if it was changed on the server meanwhile, edit asks before replacing it. A file\n"
 			+ "\tthat doesn't exist is created when it's saved.";
@@ -56,7 +56,7 @@ public class Edit extends ShellCommand {
 			return 2;
 		}
 		FileSource file = files.get(0);
-		// (a file under a mount reports the mounted file system, so a remote one is staged)
+		// (a file under a connection reports the connected file system, so a remote one is staged)
 		FileSource real = file;
 		try (EditSession session = EditSession.open(real)) {
 			StringBuilder cmd = new StringBuilder();
