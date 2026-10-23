@@ -160,12 +160,28 @@ public class TuiBrowser {
 	 * @param single start with one pane (the full width) instead of two side by side; the other
 	 *        location is still there, a Tab away
 	 */
-	/** the connections of the program this runs in (fsh's), or null: standalone */
+	/**
+	 * The file tree the panes are in: the browser's own (pfv; its connections close when it ends),
+	 * or what it runs in gives it (fsh's, with setConnections). Either way a path means one place.
+	 */
 	private HostConnections connections;
+	private us.bringardner.parley.files.viewer.tui.TreeConnections ownTree;
 
-	/** Connect file systems opened here in the host (fsh): they stay after the browser ends. */
+	{
+		try {
+			ownTree = new us.bringardner.parley.files.viewer.tui.TreeConnections();
+		} catch (IOException e) {
+			throw new java.io.UncheckedIOException(e);
+		}
+		connections = ownTree;
+	}
+
+	/** Use the tree of the program this runs in (fsh's): what's connected here stays after the browser ends. */
 	public void setConnections(HostConnections connections) {
-		this.connections = connections;
+		if( connections != null ) {
+			this.connections = connections;
+			ownTree = null;
+		}
 	}
 
 	public TuiBrowser(Screen screen, FileSource left, FileSource right, boolean single) {
@@ -243,6 +259,10 @@ public class TuiBrowser {
 			gui.addWindowAndWait(main);
 		} finally {
 			worker.shutdownNow();
+			if( ownTree != null ) {
+				// the browser's own connections end with it (fsh's stay: they're the shell's)
+				ownTree.disconnectAll();
+			}
 		}
 	}
 
@@ -674,9 +694,7 @@ public class TuiBrowser {
 		}
 		path = path.trim();
 		try {
-			FileSource dir = connections != null && path.startsWith("/") ? connections.file(path)
-					: path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*")
-					? suggested.getFileSourceFactory().createFileSource(path)
+			FileSource dir = us.bringardner.parley.files.viewer.tui.termui.TermBrowser.isAbsolute(path) ? connections.file(path)
 					: pane().getDirectory().getChild(path);
 			if( !dir.isDirectory()) {
 				setStatus(path+" is not a directory");
@@ -765,8 +783,7 @@ public class TuiBrowser {
 	}
 
 	private void gotoPath() {
-		// (in fsh there's one tree, so the pane's file system doesn't matter; standalone it does)
-		String path = prompt("Go to", connections != null ? "Path" : "Path on "+Connections.label(pane().getFactory().getTypeId()),
+		String path = prompt("Go to", "Path",
 				pane().getDirectory().getAbsolutePath());
 		if( path == null || path.trim().isEmpty()) {
 			return;
@@ -785,21 +802,19 @@ public class TuiBrowser {
 		}
 	}
 
-	/** a path typed in g: in fsh, in the shell's file tree (its connections included); standalone, on the pane's file system */
+	/** a path typed in g, in the browser's file tree; a relative one is from the pane's folder */
 	private FileSource resolve(String path) throws IOException {
-		if( connections == null ) {
-			return pane().getFactory().createFileSource(path);
-		}
-		if( !path.startsWith("/")) {
+		if( !us.bringardner.parley.files.viewer.tui.termui.TermBrowser.isAbsolute(path)) {
 			String dir = pane().getDirectory().getAbsolutePath();
-			path = (dir.endsWith("/") ? dir : dir+"/")+path;
+			String sep = dir.indexOf('/') < 0 && dir.indexOf('\\') >= 0 ? "\\" : "/";
+			path = (dir.endsWith("/") || dir.endsWith("\\") ? dir : dir+sep)+path;
 		}
 		return connections.file(path);
 	}
 
-	/** A folder as the panes show it: in fsh, a local folder is the same folder in the shell's file tree, so its connections are listed in it and above it */
+	/** A folder as the panes show it: a local folder is the same folder in the browser's file tree, so the connections are listed in it and above it */
 	private FileSource inHost(FileSource local) {
-		if( connections == null || !FileOps.isLocal(local)) {
+		if( !FileOps.isLocal(local)) {
 			return local;
 		}
 		try {
@@ -850,9 +865,6 @@ public class TuiBrowser {
 			goLocal(target);
 			return;
 		}
-		if( !mayLeave(target)) {
-			return;
-		}
 		FileSourceFactory factory;
 		try {
 			factory = Connections.create(type);
@@ -861,7 +873,7 @@ public class TuiBrowser {
 			return;
 		}
 		HostConnections hc = connections;
-		ConnectDialog.Answer answer = ConnectDialog.show(gui, factory, hc == null ? null : hc.list().keySet());
+		ConnectDialog.Answer answer = ConnectDialog.show(gui, factory, hc.list().keySet());
 		if( answer == null ) {
 			return;
 		}
@@ -874,18 +886,14 @@ public class TuiBrowser {
 					try {
 						start = Connections.startIn(factory, answer.startIn);
 					} catch (IOException e) {
-						note = e.getMessage()+"; opened "+start.getAbsolutePath();
+						note = e.getMessage();
 					}
 				}
-				FileSource dir = hc == null ? start : connectInHost(hc, factory, start, answer.connectAt);
-				String message = note;
+				FileSource dir = connectInHost(hc, factory, start, answer.connectAt);
+				String message = note == null ? null : note+"; opened "+dir.getAbsolutePath();
 				gui.getGUIThread().invokeLater(()->{
-					if( hc == null ) {
-						opened.add(factory);
-					} else {
-						setStatus(label+" connected at "+answer.connectAt);
-					}
-					switchTo(target, dir);
+					setStatus(label+" connected at "+answer.connectAt);
+					target.go(dir);
 					if( message != null ) {
 						// a dialog, not the status line: the pane's listing replaces that as it loads
 						com.googlecode.lanterna.gui2.dialogs.MessageDialog.showMessageDialog(gui, "Start in", message,
@@ -924,51 +932,33 @@ public class TuiBrowser {
 		return hc.file(under ? path+"/"+rel.replace('\\', '/') : path);
 	}
 
-	/** D: choose a connection and disconnect it (in fsh, the shell's; standalone, this browser's) */
+	/** D: choose one of the tree's connections (in fsh, the shell's) and disconnect it */
 	private void disconnectChosen() {
 		HostConnections hc = connections;
 		List<String> labels = new ArrayList<>();
 		List<Runnable> actions = new ArrayList<>();
-		if( hc != null ) {
-			for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
-				String path = e.getKey();
-				labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
-				actions.add(()->worker.execute(()->{
-					try {
-						hc.disconnect(path);
-						gui.getGUIThread().invokeLater(()->{
-							leave(p->p.getDirectory() != null && (p.getDirectory().getAbsolutePath().equals(path)
-									|| p.getDirectory().getAbsolutePath().startsWith(path+"/")));
-							setStatus("Disconnected "+path);
-						});
-					} catch (IOException e2) {
-						error("Can't disconnect "+path, e2);
-					}
-				}));
-			}
-		} else {
-			for(FileSourceFactory f : new ArrayList<>(opened)) {
-				labels.add(FileOps.describe(f));
-				actions.add(()->{
-					opened.remove(f);
-					leave(p->p.getFactory() == f);
-					worker.execute(()->{
-						try {
-							f.disConnect();
-						} catch (IOException e2) {
-							// it's being let go anyway
-						}
+		for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
+			String path = e.getKey();
+			labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
+			actions.add(()->worker.execute(()->{
+				try {
+					hc.disconnect(path);
+					gui.getGUIThread().invokeLater(()->{
+						leave(p->p.getDirectory() != null && (p.getDirectory().getAbsolutePath().equals(path)
+								|| p.getDirectory().getAbsolutePath().startsWith(path+"/")));
+						setStatus("Disconnected "+path);
 					});
-					setStatus("Disconnected "+FileOps.describe(f));
-				});
-			}
+				} catch (IOException e2) {
+					error("Can't disconnect "+path, e2);
+				}
+			}));
 		}
 		if( labels.isEmpty()) {
 			setStatus("Nothing is connected");
 			return;
 		}
 		String chosen = ListSelectDialog.showDialog(gui, "Disconnect",
-				hc != null ? "The shell's connections" : "This browser's connections", labels.toArray(new String[0]));
+				ownTree == null ? "The shell's connections" : "Connections", labels.toArray(new String[0]));
 		if( chosen != null && confirm("Disconnect", "Disconnect "+chosen+"?")) {
 			actions.get(labels.indexOf(chosen)).run();
 		}
@@ -987,14 +977,11 @@ public class TuiBrowser {
 		}
 	}
 
-	/** x: back to the local disk, where this pane last was there (else home), asking before a connection is closed. */
+	/** x: back to the local disk, where this pane last was there (else home); connections stay (D disconnects) */
 	private void disconnect() {
 		FilePane target = pane();
-		if( !mayLeave(target)) {
-			return;
-		}
 		try {
-			switchTo(target, localStart(target));
+			target.go(localStart(target));
 		} catch (IOException e) {
 			error("Can't open the local folder", e);
 		}
@@ -1018,10 +1005,7 @@ public class TuiBrowser {
 				setStatus(path.trim()+" isn't a folder");
 				return;
 			}
-			if( !mayLeave(target)) {
-				return;
-			}
-			switchTo(target, dir);
+			target.go(dir);
 		} catch (IOException e) {
 			error("Can't open "+path, e);
 		}
@@ -1031,29 +1015,6 @@ public class TuiBrowser {
 	private FileSource localStart(FilePane target) throws IOException {
 		FileSource last = target.getLastLocal();
 		return last != null && last.isDirectory() ? last : FileOps.localHome();
-	}
-
-	/**
-	 * The file systems this browser connected to itself (o): the only ones it may disconnect.
-	 * Others are its caller's (fsh's mounts), so leaving one just leaves it.
-	 */
-	private final java.util.Set<FileSourceFactory> opened = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-
-	/**
-	 * Whether the pane may leave the file system it's on: yes if this browser didn't connect to it
-	 * (the local disk, the caller's mounts), or the other pane uses it too; otherwise leaving closes
-	 * the connection, so ask.
-	 */
-	private boolean mayLeave(FilePane target) {
-		FileSourceFactory current = target.getFactory();
-		if( current == null || !opened.contains(current)) {
-			return true;
-		}
-		FilePane otherPane = target == panes[0] ? panes[1] : panes[0];
-		if( otherPane.getFactory() == current ) {
-			return true;
-		}
-		return confirm("Disconnect", "Disconnect from "+FileOps.describe(current)+"?\nNo other pane uses it.");
 	}
 
 	/** Ask for a folder on the local disk: typed (~ is home) or chosen with Browse...; null if canceled. */
@@ -1104,22 +1065,6 @@ public class TuiBrowser {
 		w.setComponent(p);
 		gui.addWindowAndWait(w);
 		return answer[0];
-	}
-
-	/** Show dir in pane, and disconnect the file system the pane was on if this browser opened it and it's now unused. */
-	private void switchTo(FilePane target, FileSource dir) {
-		FileSourceFactory old = target.getFactory();
-		target.go(dir);
-		FilePane otherPane = target == panes[0] ? panes[1] : panes[0];
-		if( old != null && old != dir.getFileSourceFactory() && old != otherPane.getFactory() && opened.remove(old)) {
-			worker.execute(()->{
-				try {
-					old.disConnect();
-				} catch (IOException e) {
-					// it's being let go anyway
-				}
-			});
-		}
 	}
 
 	// ---------------------------------------------------------------- helpers

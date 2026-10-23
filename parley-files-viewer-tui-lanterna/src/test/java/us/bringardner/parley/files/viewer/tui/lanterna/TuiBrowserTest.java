@@ -265,9 +265,9 @@ public class TuiBrowserTest {
 		waitFor(()->!text().contains("Connect: memory"), "the form to close");
 		// copy from the local right pane into memory works too
 		assertEquals("memory", browser.getPane(0).getFactory().getTypeId());
-		// it opens at the memory file system's root, not at a path that only exists locally
-		assertEquals("/", browser.getPane(0).getDirectory().getAbsolutePath());
-		waitFor(()->text().contains("[memory] / "), "the memory root in the header");
+		// it opens at the memory file system's root, connected in the browser's tree at Connect at
+		assertEquals("/memory", browser.getPane(0).getDirectory().getAbsolutePath());
+		waitFor(()->text().contains("[memory] /memory"), "the memory root in the header");
 	}
 
 	/** o, then the file system at this place in the list (Local is first). */
@@ -305,8 +305,8 @@ public class TuiBrowserTest {
 		assertFalse(form.contains("Known hosts file"), "the advanced settings are behind More...\n"+form);
 		assertTrue(form.contains("Start in") && form.contains("More..."), form);
 
-		// More...: from Host, past Port, User, Log in with, Password, the cache time, Start in, Connect and Cancel
-		tab(9);
+		// More...: from Host, past Port, User, Log in with, Password, the cache time, Start in, Connect at, Connect and Cancel
+		tab(10);
 		key(new KeyStroke(KeyType.Enter));
 		waitFor(()->text().contains("Known hosts file") && text().contains("Advanced:") && text().contains("Fewer"), "the advanced settings");
 		key(new KeyStroke(KeyType.Enter));
@@ -339,42 +339,43 @@ public class TuiBrowserTest {
 		waitFor(()->text().contains("The folder to open once connected"), "Start in's description");
 		typeText("/nope");
 		key(new KeyStroke(KeyType.Enter));
-		waitFor(()->text().contains("/nope isn't a folder on memory; opened /"), "the message");
-		assertEquals("/", browser.getPane(0).getDirectory().getAbsolutePath());
+		waitFor(()->text().contains("/nope isn't a folder on memory; opened /memory"), "the message");
+		assertEquals("/memory", browser.getPane(0).getDirectory().getAbsolutePath());
 		key(new KeyStroke(KeyType.Enter));
 		waitFor(()->!text().contains("isn't a folder"), "the message to close");
 	}
 
+	/**
+	 * Leaving a connection (x, or Local in the connect list) goes back to where the pane last was
+	 * on the local disk, without asking: the connection stays in the browser's tree (D disconnects
+	 * it, and quitting closes it).
+	 */
 	@Test
-	public void leavingAConnectionAsksFirstAndGoesBackToTheLastLocalFolder() throws Exception {
+	public void leavingAConnectionGoesBackToTheLastLocalFolderAndKeepsIt() throws Exception {
 		String leftPath = left.getAbsolutePath();
 		openConnect("memory");
 		waitFor(()->text().contains("Connect: memory"), "the connect form");
 		key(new KeyStroke(KeyType.Enter));
-		waitFor(()->"memory".equals(browser.getPane(0).getFactory().getTypeId()) && text().contains("[memory] / "), "the memory pane");
+		waitFor(()->"memory".equals(browser.getPane(0).getFactory().getTypeId()) && text().contains("[memory] /memory"), "the memory pane");
+		us.bringardner.parley.files.FileSourceFactory mem = browser.getPane(0).getFactory();
 
-		// x asks; No keeps the connection
 		type('x');
-		waitFor(()->text().contains("Disconnect from memory?"), "the question");
-		tab(1);
-		key(new KeyStroke(KeyType.Enter));
-		waitFor(()->!text().contains("Disconnect from memory?"), "the question to close");
-		assertEquals("memory", browser.getPane(0).getFactory().getTypeId());
+		waitFor(()->FileOps.isLocal(browser.getPane(0).getDirectory()), "the pane back on the local disk");
+		assertEquals(leftPath, browser.getPane(0).getDirectory().getAbsolutePath());
+		assertFalse(text().contains("Disconnect from"), text());
+		assertTrue(mem.isConnected());
 
-		// Local asks which folder, starting with where this pane last was on the local disk
+		// Local: which folder, starting with where this pane last was on the local disk
 		openConnect("fileproxy");
 		waitFor(()->text().contains("Folder on the local disk") && text().contains(leftPath), "the local folder, filled in");
 		key(new KeyStroke(KeyType.Enter));
-		waitFor(()->text().contains("Disconnect from memory?"), "the question");
-		key(new KeyStroke(KeyType.Enter));
-		waitFor(()->FileOps.isLocal(browser.getPane(0).getDirectory()), "the pane back on the local disk");
-		assertEquals(leftPath, browser.getPane(0).getDirectory().getAbsolutePath());
-
-		// on the local disk already: x doesn't ask
-		type('x');
 		waitFor(()->FileOps.isLocal(browser.getPane(0).getDirectory()), "still local");
-		Thread.sleep(300);
-		assertFalse(text().contains("Disconnect from"), text());
+		assertTrue(mem.isConnected());
+
+		// quitting closes the browser's own connections
+		type('q');
+		thread.join(5000);
+		assertFalse(mem.isConnected());
 	}
 
 	@Test

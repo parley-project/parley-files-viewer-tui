@@ -19,6 +19,11 @@
 - In fsh, the panes show the shell's file tree wherever they go, so its connections are listed:
   going up from a local folder (Left, Backspace), `g`, `x`, Local in the connect list and a copy or
   move destination such as `/mem/x` all reached the local disk without them. (Both browsers.)
+- **pfv works as fsh's browse does: one file tree.** On its own the browser has a tree of its own
+  (parley-files' `us.bringardner.parley.files.tree`, which fsh's shell uses too): `o` connects a
+  file system at a path (**Connect at**), a path means one place in either pane, Go to asks for a
+  Path, and going up leaves a connection for the folder it's in. Connections stay until `D` or
+  quitting (leaving one no longer asks to close it). (Both browsers.)
 - **Copy and paste: Ctrl-C or Ctrl-X, then Ctrl-V.** Ctrl-C copies the marked entries (else the
   one under the cursor) to the browser's clipboard and Ctrl-X cuts them; Ctrl-V copies or moves them
   into the directory you're in, in either pane. Ctrl-C no longer quits (`q` and F10 do). The Lanterna
