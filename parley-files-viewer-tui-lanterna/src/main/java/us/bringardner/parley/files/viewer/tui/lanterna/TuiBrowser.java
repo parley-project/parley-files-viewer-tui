@@ -691,7 +691,8 @@ public class TuiBrowser {
 	}
 
 	private void gotoPath() {
-		String path = prompt("Go to", "Path on "+Connections.label(pane().getFactory().getTypeId()),
+		// (in fsh there's one tree, so the pane's file system doesn't matter; standalone it does)
+		String path = prompt("Go to", connections != null ? "Path" : "Path on "+Connections.label(pane().getFactory().getTypeId()),
 				pane().getDirectory().getAbsolutePath());
 		if( path == null || path.trim().isEmpty()) {
 			return;

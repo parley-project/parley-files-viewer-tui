@@ -627,7 +627,9 @@ public class TermBrowser implements Tui.App {
 	 * (/mem); standalone, a path on the pane's file system. A relative path is from the pane's folder.
 	 */
 	private void gotoPath() {
-		Dialog.Prompt prompt = new Dialog.Prompt("Go to", "Path on "+Connections.label(pane().getFactory().getTypeId()),
+		// (in fsh there's one tree, so the pane's file system doesn't matter; standalone it does)
+		String label = host.connections() != null ? "Path" : "Path on "+Connections.label(pane().getFactory().getTypeId());
+		Dialog.Prompt prompt = new Dialog.Prompt("Go to", label,
 				pane().getDirectory().getAbsolutePath(), path->{
 					if( path.trim().isEmpty()) {
 						return;
