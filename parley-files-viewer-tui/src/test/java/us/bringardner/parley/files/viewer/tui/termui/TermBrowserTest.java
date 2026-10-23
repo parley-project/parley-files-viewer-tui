@@ -411,6 +411,22 @@ public class TermBrowserTest {
 		assertEquals("Nothing to paste: Ctrl-C copies, Ctrl-X cuts", b.getStatus());
 	}
 
+	/** In fsh too, Ctrl-X then Ctrl-V moves. */
+	@Test
+	public void ctrlXThenCtrlVMovesInTheShell() throws Exception {
+		startInShell(shellWithConnection());
+		down(3); // b.txt
+		b.key(Key.ctrl('x'));
+		assertEquals("Cut b.txt: Ctrl-V moves it to the directory you're in", b.getStatus());
+		key(Key.Code.TAB);
+		b.key(Key.ctrl('v'));
+		pumpUntil(()->b.getStatus().startsWith("Moved") || b.getStatus().startsWith("Copied"));
+		pumpIdle();
+		assertTrue(b.getStatus().startsWith("Moved 1"), b.getStatus());
+		assertFalse(src.getChild("b.txt").exists());
+		assertEquals("bravo\n", read(dest.getChild("b.txt")));
+	}
+
 	/** a (twice: all, then none) clears the marks and puts the cursor back on ../ */
 	private void pane0ClearMarks() {
 		ch('a');
