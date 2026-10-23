@@ -411,6 +411,20 @@ public class TermBrowserTest {
 		assertEquals("Nothing to paste: Ctrl-C copies, Ctrl-X cuts", b.getStatus());
 	}
 
+	/** The selection stays after Ctrl-C, as in a GUI, so Ctrl-X right after it cuts the same files. */
+	@Test
+	public void ctrlXAfterCtrlCCutsTheSameSelection() throws IOException {
+		down(3); // b.txt
+		shift(Key.Code.UP); // a.txt and b.txt
+		shift(Key.Code.UP); // the cursor on sub
+		shift(Key.Code.UP); // and on ../ (never marked): sub, a.txt, b.txt
+		assertEquals("3 marked", b.getStatus());
+		b.key(Key.ctrl('c'));
+		assertEquals("Copied 3 items: Ctrl-V copies them to the directory you're in", b.getStatus());
+		b.key(Key.ctrl('x'));
+		assertEquals("Cut 3 items: Ctrl-V moves them to the directory you're in", b.getStatus());
+	}
+
 	/** In fsh too, Ctrl-X then Ctrl-V moves. */
 	@Test
 	public void ctrlXThenCtrlVMovesInTheShell() throws Exception {
