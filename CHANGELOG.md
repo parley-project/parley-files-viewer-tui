@@ -25,7 +25,8 @@
   browser traps Ctrl-C instead of letting Lanterna end the program (in fsh, the shell). (Both browsers.)
 - **Shift and the arrows mark a range** (also Shift with Page Up / Down, Home and End): from where
   you start to the cursor, as in a GUI list, so copy, move and delete act on it. Going back unmarks
-  what's passed; marks made before stay. (Both browsers.)
+  what's passed, and a move without Shift drops the selection; marks made with Space stay.
+  (Both browsers.)
 - `g` asks for a "Path" in fsh (one tree, whatever the pane is on); on its own it names the pane's
   file system as its header does (Local, not fileproxy). In its box, and in
   every text box, Ctrl-U clears it and Ctrl-W goes back a folder; the box says so.

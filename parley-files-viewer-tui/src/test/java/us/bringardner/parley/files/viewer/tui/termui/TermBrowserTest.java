@@ -307,7 +307,8 @@ public class TermBrowserTest {
 
 	/**
 	 * Shift and an arrow marks from where it started to the cursor (going back unmarks what's
-	 * passed); a move without Shift ends it, and the next one adds to what's marked. Copy acts on it.
+	 * passed); a move without Shift drops it, so the next one starts afresh, and what was marked
+	 * with Space stays. Copy acts on it.
 	 */
 	@Test
 	public void shiftArrowsMarkARangeThatCopyActsOn() throws IOException {
@@ -324,12 +325,19 @@ public class TermBrowserTest {
 		down(2); // a.txt
 		shift(Key.Code.DOWN);
 		assertEquals("2 marked", b.getStatus()); // a.txt and b.txt
-		key(Key.Code.UP);
-		key(Key.Code.UP); // sub, without Shift: the marks stay
-		shift(Key.Code.UP); // a new selection: ../ and sub, added to the two
+		key(Key.Code.UP); // without Shift: the selection goes
+		assertFalse(screen().contains("marked"), screen());
+		shift(Key.Code.UP); // a new one: sub and a.txt, not added to the old one
+		assertEquals("2 marked", b.getStatus());
+		// a mark made with Space stays through a selection and a move without Shift
+		key(Key.Code.END);
+		ch(' '); // b.txt (Space marks and moves down; it's the last, so it stays)
+		key(Key.Code.HOME);
+		down(1);
+		shift(Key.Code.DOWN); // sub and a.txt, and b.txt marked before
+		assertEquals("3 marked", b.getStatus());
 		key(Key.Code.DOWN);
-		shift(Key.Code.END);
-		assertTrue(screen().contains("3 marked"), screen());
+		assertTrue(screen().contains("1 marked"), screen());
 		pane0ClearMarks();
 		down(2);
 		shift(Key.Code.DOWN);

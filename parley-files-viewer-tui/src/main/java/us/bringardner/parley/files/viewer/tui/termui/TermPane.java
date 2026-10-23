@@ -271,7 +271,7 @@ final class TermPane {
 	}
 
 	void moveTo(int row) {
-		anchor = -1;
+		dropSelection();
 		selected = Math.max(0, Math.min(rowCount()-1, row));
 		status.accept(describeCurrent());
 	}
@@ -279,7 +279,8 @@ final class TermPane {
 	/**
 	 * Shift and an arrow (or Page Up / Down, Home, End): move, marking every entry from where the
 	 * Shift selection started to here, as a GUI's list does; going back unmarks what's passed.
-	 * Marks made before it stay. A move without Shift ends it.
+	 * Marks made with Space stay. A move without Shift drops the selection, so the next one
+	 * starts afresh.
 	 */
 	void extendTo(int row) {
 		if( anchor < 0 ) {
@@ -297,6 +298,15 @@ final class TermPane {
 			}
 		}
 		status.accept(marked.size()+" marked");
+	}
+
+	/** A move without Shift: the Shift selection goes (what was marked with Space stays). */
+	private void dropSelection() {
+		if( anchor >= 0 ) {
+			marked.clear();
+			marked.addAll(markedBefore);
+			anchor = -1;
+		}
 	}
 
 	void extendBy(int rows) {
