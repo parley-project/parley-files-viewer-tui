@@ -94,6 +94,7 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `e` F4 | edit with `$VISUAL` / `$EDITOR` (else vi, notepad on Windows) |
 | `c` F5 | copy to the other pane |
 | `m` F6 | move to the other pane |
+| Ctrl-C / Ctrl-X, then Ctrl-V | copy / cut the marked entries (else the one under the cursor), then paste them in the directory you're in, in either pane (a cut is moved once) |
 | `r` | rename |
 | `n` F7 | new directory |
 | `d` F8 Delete | delete |

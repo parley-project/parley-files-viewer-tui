@@ -19,6 +19,10 @@
 - In fsh, the panes show the shell's file tree wherever they go, so its connections are listed:
   going up from a local folder (Left, Backspace), `g`, `x`, Local in the connect list and a copy or
   move destination such as `/mem/x` all reached the local disk without them. (Both browsers.)
+- **Copy and paste: Ctrl-C or Ctrl-X, then Ctrl-V.** Ctrl-C copies the marked entries (else the
+  one under the cursor) to the browser's clipboard and Ctrl-X cuts them; Ctrl-V copies or moves them
+  into the directory you're in, in either pane. Ctrl-C no longer quits (`q` and F10 do). The Lanterna
+  browser traps Ctrl-C instead of letting Lanterna end the program (in fsh, the shell). (Both browsers.)
 - **Shift and the arrows mark a range** (also Shift with Page Up / Down, Home and End): from where
   you start to the cursor, as in a GUI list, so copy, move and delete act on it. Going back unmarks
   what's passed; marks made before stay. (Both browsers.)

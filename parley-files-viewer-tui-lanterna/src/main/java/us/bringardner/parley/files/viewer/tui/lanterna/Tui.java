@@ -52,6 +52,8 @@ public final class Tui {
 		Terminal terminal = new DefaultTerminalFactory(
 				new FileOutputStream(FileDescriptor.out), new FileInputStream(FileDescriptor.in), utf8)
 				.setForceTextTerminal(true)
+				// Ctrl-C is a key (copy), not the end of the program: in fsh that would end the shell
+				.setUnixTerminalCtrlCBehaviour(com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal.CtrlCBehaviour.TRAP)
 				.createTerminal();
 		Screen screen = new TerminalScreen(terminal);
 		screen.startScreen();
