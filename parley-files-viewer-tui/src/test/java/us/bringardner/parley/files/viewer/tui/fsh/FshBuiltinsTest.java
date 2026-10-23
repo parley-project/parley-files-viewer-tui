@@ -101,7 +101,7 @@ public class FshBuiltinsTest {
 		fsh("edit d/a.txt");
 		assertEquals("hello world\nedited\n", new String(Files.readAllBytes(tmp.resolve("d/a.txt")), StandardCharsets.UTF_8));
 
-		// a file on a mounted file system is staged, edited and copied back; the local one is untouched
+		// a file on a connected file system is staged, edited and copied back; the local one is untouched
 		String out = fsh("connect memory /mem; mkdir /mem/w; cp d/sub/b.md /mem/w/; edit /mem/w/b.md; view -c /mem/w/b.md");
 		assertTrue(out.contains("edit: saved /mem/w/b.md to memory"), out);
 		assertTrue(out.endsWith("Hello again\nedited\n"), out);

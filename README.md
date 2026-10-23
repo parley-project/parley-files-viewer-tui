@@ -16,7 +16,7 @@ It comes two ways:
 | In fsh | the jar in fsh's plugin folder | [fsh](https://github.com/parley-project/parley-fsh), the bash-compatible shell over any file system, gets the browser for its `browse` command, and `view`, `edit` and `search` |
 
 Both use one engine: the copy, search, edit and preview code is the same, and `browse` in fsh
-opens the browser on the shell's own file tree (mounts included) and drops you back at the prompt
+opens the browser on the shell's own file tree (connections included) and drops you back at the prompt
 when you quit.
 
 The browser is built on [parley-term](https://github.com/parley-project/parley-term), Parley's
@@ -134,8 +134,8 @@ Everything fsh does (`connect`, `cd`, `ls`, `cp`, `find`, pipes, scripts, comple
 |---|---|
 | `browse [-1] [-c] [DIR [DIR2]]` | fsh's own command: with this plugin, the full-screen browser on the shell's file tree; `-c` cds to where you quit; `browse --with lanterna` uses the Lanterna one |
 | `view [-c] [-x] FILE ...` | full-screen pager; prints instead (hex for binary) when piped or with `-c` |
-| `edit FILE` | `$VISUAL` / `$EDITOR`; a file on a mounted remote file system is staged locally and copied back if you saved, with a warning if it changed on the server meanwhile |
-| `search [-i] [-a] [-l] [-n NAME] [-t TEXT] [DIR ...]` | by name glob and/or contents, on any mounted file system; prints paths as `find` does |
+| `edit FILE` | `$VISUAL` / `$EDITOR`; a file on a connected remote file system is staged locally and copied back if you saved, with a warning if it changed on the server meanwhile |
+| `search [-i] [-a] [-l] [-n NAME] [-t TEXT] [DIR ...]` | by name glob and/or contents, on any connected file system; prints paths as `find` does |
 
 `help NAME` describes each. For example:
 

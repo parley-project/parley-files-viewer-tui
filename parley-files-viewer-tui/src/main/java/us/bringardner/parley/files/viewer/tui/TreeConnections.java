@@ -51,12 +51,12 @@ public final class TreeConnections implements HostConnections {
 
 	@Override
 	public boolean connect(String path, FileSource top) throws IOException {
-		return tree.mount(path, top);
+		return tree.connectAt(path, top);
 	}
 
 	@Override
 	public void disconnect(String path) throws IOException {
-		FileSource removed = tree.unmount(path);
+		FileSource removed = tree.disconnectAt(path);
 		if( removed == null ) {
 			throw new IOException("nothing is connected at "+path);
 		}

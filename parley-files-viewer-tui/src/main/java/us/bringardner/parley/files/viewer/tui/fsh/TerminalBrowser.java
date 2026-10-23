@@ -30,7 +30,7 @@ import us.bringardner.parley.files.viewer.tui.termui.TermMain;
 
 /**
  * The full-screen browser on Parley's own terminal code (parley-term), for fsh's browse: the
- * shell's own file tree, mounts included.
+ * shell's own file tree, connections included.
  */
 public class TerminalBrowser implements BrowserProvider {
 

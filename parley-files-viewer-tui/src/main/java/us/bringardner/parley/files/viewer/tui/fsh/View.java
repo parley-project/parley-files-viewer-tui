@@ -34,7 +34,7 @@ public class View extends ShellCommand {
 
 	static final String NAME = "view";
 	static final String HELP = "view [-c] [-x] FILE ...\n"
-			+ "\tShow each FILE, on any mounted file system, in a full-screen viewer (Esc or q to\n"
+			+ "\tShow each FILE, on any connected file system, in a full-screen viewer (Esc or q to\n"
 			+ "\tclose). A binary file is shown as a hex dump. Only the first 1 MB is read.\n"
 			+ "\tWhen the output is redirected or piped, or with -c, the files are printed instead.\n"
 			+ "\t-c   print, don't page\n"
