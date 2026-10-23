@@ -447,6 +447,29 @@ public class TermBrowserTest {
 		pumpUntil(()->lines().get(0).startsWith("> [Local]") && activeName().equals("src"));
 	}
 
+	/**
+	 * A file system the caller gave the browser (fsh's connect mount) is not the browser's to close:
+	 * leaving it doesn't ask and doesn't disconnect it.
+	 */
+	@Test
+	public void leavesTheCallersFileSystemsConnected() throws IOException {
+		us.bringardner.parley.files.memory.MemoryFileSourceFactory mem = new us.bringardner.parley.files.memory.MemoryFileSourceFactory();
+		mem.connect(new java.util.Properties());
+		FileSource dir = mem.createFileSource("/shared");
+		dir.mkdirs();
+		write(mem.createFileSource("/shared/a.txt"), "hello");
+		b = new TermBrowser(dir, dest, false, worker, ui, host);
+		pumpUntil(()->screen().contains("a.txt"));
+		pumpIdle();
+		ch('x');
+		pumpIdle();
+		assertFalse(b.hasDialog(), "asked to disconnect a file system the browser didn't open:\n"+screen());
+		pumpUntil(()->lines().get(0).startsWith("> [Local]"));
+		pumpIdle();
+		assertTrue(mem.isConnected());
+		assertEquals("hello", read(mem.createFileSource("/shared/a.txt")));
+	}
+
 	@Test
 	public void localAsksForAFolder() {
 		connectTo("Local");
