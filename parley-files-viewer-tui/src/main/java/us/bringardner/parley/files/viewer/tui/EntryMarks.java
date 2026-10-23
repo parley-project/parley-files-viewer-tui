@@ -44,10 +44,13 @@ public final class EntryMarks {
 	public static final class Mark {
 		public final String mark;
 		public final String target;
+		/** a connection (else a symbolic link) */
+		public final boolean connection;
 
-		Mark(String mark, String target) {
+		Mark(String mark, String target, boolean connection) {
 			this.mark = mark;
 			this.target = target;
+			this.connection = connection;
 		}
 	}
 
@@ -75,7 +78,7 @@ public final class EntryMarks {
 	static Mark of(FileSource f, Map<String, FileSource> connections) {
 		FileSource top = connections == null ? null : connections.get(f.getAbsolutePath().replace('\\', '/'));
 		if( top != null ) {
-			return new Mark("<"+Connections.label(top.getFileSourceFactory().getTypeId())+">", describeConnection(top));
+			return new Mark("<"+Connections.label(top.getFileSourceFactory().getTypeId())+">", describeConnection(top), true);
 		}
 		File local = LocalFiles.of(f);
 		if( local != null ) {
@@ -87,7 +90,7 @@ public final class EntryMarks {
 				} catch (IOException | RuntimeException e) {
 					target = "?";
 				}
-				return new Mark("<LINK>", target);
+				return new Mark("<LINK>", target, false);
 			}
 		}
 		return null;

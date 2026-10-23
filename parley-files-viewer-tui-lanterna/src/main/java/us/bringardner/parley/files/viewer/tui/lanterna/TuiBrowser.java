@@ -75,13 +75,22 @@ public class TuiBrowser {
 
 	/** The key bar's entries, most useful first; what doesn't fit the width is left off (? lists them all). */
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
-			"d delete", "n mkdir", "r rename", "s search", "o connect", "D disconnect", "t shell", "g goto", "h hidden"};
+			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden"};
 
 	/** The key bar for a screen this wide: as many entries as fit, in their usual order, help and quit last. */
 	static String keyBar(int width) {
+		return keyBar(width, false);
+	}
+
+	/** The key bar, with D disconnect after o connect when the cursor is on a connection. */
+	static String keyBar(int width, boolean onConnection) {
+		List<String> keys = new ArrayList<>(Arrays.asList(KEY_BAR));
+		if( onConnection ) {
+			keys.add(keys.indexOf("o connect")+1, "D disconnect");
+		}
 		List<String> fit = new ArrayList<>();
 		int used = 0;
-		for(String k : KEY_BAR) {
+		for(String k : keys) {
 			if( used+k.length()+2 > width ) {
 				break;
 			}
@@ -124,7 +133,7 @@ public class TuiBrowser {
 			"  s                            search below this directory (name and/or text)",
 			"  o                            connect this pane to a file system (SFTP, JDBC, ...), or Local",
 			"  x                            back to the local disk, where this pane last was there",
-			"  D                            disconnect a connection (in fsh: one of the shell's)",
+			"  D                            disconnect the connection under the cursor (elsewhere: choose one)",
 			"  t                            shell in this directory (local file systems)",
 			"  h                            show / hide hidden files",
 			"  f                            sort by name, size, modified",
@@ -286,7 +295,7 @@ public class TuiBrowser {
 
 	private void fit(TerminalSize size) {
 		if( keys != null ) {
-			keys.setText(keyBar(size.getColumns()));
+			keys.setText(keyBar(size.getColumns(), pane().connectionUnderCursor() != null));
 		}
 		int paneWidth = single ? size.getColumns() : (size.getColumns()-1)/2;
 		int paneHeight = size.getRows()-2;
@@ -321,6 +330,10 @@ public class TuiBrowser {
 		// and to the screen's width: a longer label is wrapped onto lines that aren't shown
 		int width = screen.getTerminalSize().getColumns();
 		status.setText(line.length() <= width ? line : line.substring(0, Math.max(0, width-3))+"...");
+		// (the status line follows the cursor: so does D disconnect in the key bar)
+		if( keys != null ) {
+			keys.setText(keyBar(width, pane().connectionUnderCursor() != null));
+		}
 	}
 
 	/** The global keys; anything not handled here goes to the focused table. */
@@ -341,7 +354,7 @@ public class TuiBrowser {
 				case 's': search(); return true;
 				case 'o': connect(); return true;
 				case 'x': disconnect(); return true;
-				case 'D': disconnectChosen(); return true;
+				case 'D': disconnectKey(); return true;
 				case 't': shell(); return true;
 				case 'g': gotoPath(); return true;
 				case 'h': pane().setShowHidden(!pane().isShowHidden()); return true;
@@ -934,6 +947,39 @@ public class TuiBrowser {
 	}
 
 	/** D: choose one of the tree's connections (in fsh, the shell's) and disconnect it */
+	/** D: the connection under the cursor, after a confirm; elsewhere, choose one from the list */
+	private void disconnectKey() {
+		String path = pane().connectionUnderCursor();
+		FileSource top = path == null ? null : connections.list().get(path);
+		if( top == null ) {
+			disconnectChosen();
+			return;
+		}
+		if( confirm("Disconnect", "Disconnect "+path+"  ("+FileOps.describe(top.getFileSourceFactory())+")?")) {
+			disconnectPath(path);
+		}
+	}
+
+	private void disconnectPath(String path) {
+		HostConnections hc = connections;
+		worker.execute(()->{
+			try {
+				hc.disconnect(path);
+				gui.getGUIThread().invokeLater(()->{
+					leave(p->p.getDirectory() != null && (p.getDirectory().getAbsolutePath().equals(path)
+							|| p.getDirectory().getAbsolutePath().startsWith(path+"/")));
+					// a pane showing the folder it was in lists it no longer
+					for(int i=0; i < panes.length; i++) {
+						panes[i].refreshQuietly();
+					}
+					setStatus("Disconnected "+path);
+				});
+			} catch (IOException e2) {
+				error("Can't disconnect "+path, e2);
+			}
+		});
+	}
+
 	private void disconnectChosen() {
 		HostConnections hc = connections;
 		List<String> labels = new ArrayList<>();
@@ -941,22 +987,7 @@ public class TuiBrowser {
 		for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
 			String path = e.getKey();
 			labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
-			actions.add(()->worker.execute(()->{
-				try {
-					hc.disconnect(path);
-					gui.getGUIThread().invokeLater(()->{
-						leave(p->p.getDirectory() != null && (p.getDirectory().getAbsolutePath().equals(path)
-								|| p.getDirectory().getAbsolutePath().startsWith(path+"/")));
-						// a pane showing the folder it was in lists it no longer
-						for(int i=0; i < panes.length; i++) {
-							panes[i].refreshQuietly();
-						}
-						setStatus("Disconnected "+path);
-					});
-				} catch (IOException e2) {
-					error("Can't disconnect "+path, e2);
-				}
-			}));
+			actions.add(()->disconnectPath(path));
 		}
 		if( labels.isEmpty()) {
 			setStatus("Nothing is connected");

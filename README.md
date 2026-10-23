@@ -74,7 +74,9 @@ The browser has one file tree, as fsh's shell does: the local disk, and each fil
 connect (`o`) at the path in the connect form's **Connect at** field (`/sftp-build`, say). A
 path means one place whichever pane you're in, `g` and copy destinations take any path in the
 tree, and going up from a connection leads back to the folder it's in. Connections stay until
-`D` disconnects one or you quit, which closes them all.
+`D` disconnects one (the one under the cursor, after a confirm; elsewhere it lists them, and
+the key bar shows `D disconnect` only with the cursor on a connection) or you quit, which closes
+them all.
 
 In the Size column a folder shows `<DIR>`, a connection its file system (`<sftp>`, `<memory>`)
 and a local symbolic link `<LINK>`; with the cursor on one of those, the status line says what it

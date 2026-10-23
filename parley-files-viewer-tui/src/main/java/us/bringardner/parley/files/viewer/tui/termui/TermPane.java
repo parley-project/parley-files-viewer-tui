@@ -398,6 +398,13 @@ final class TermPane {
 		return ret;
 	}
 
+	/** the path of the connection under the cursor, or null (it isn't one) */
+	String connectionUnderCursor() {
+		FileEntry e = current();
+		us.bringardner.parley.files.viewer.tui.EntryMarks.Mark m = e == null ? null : marks.get(e.getName());
+		return m != null && m.connection ? e.getFile().getAbsolutePath().replace('\\', '/') : null;
+	}
+
 	String describeCurrent() {
 		FileEntry e = current();
 		if( e == null ) {
