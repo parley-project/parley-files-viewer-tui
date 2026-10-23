@@ -1,4 +1,0 @@
-#!/bin/sh
-# fsh with the browser's builtins: view, edit, search, browse. Usage: as fsh (pfsh, pfsh -c '...', pfsh script)
-. "$(dirname "$0")/java-options.sh"
-exec java $JAVA_OPTS -cp "$JAR" us.bringardner.parley.files.viewer.tui.fsh.FshTui "$@"

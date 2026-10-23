@@ -1,0 +1,152 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<!-- License, developer and the Maven Central release profile come from parley-parent -->
+	<parent>
+		<groupId>us.bringardner.parley</groupId>
+		<artifactId>parley-parent</artifactId>
+		<version>2.0.0-SNAPSHOT</version>
+		<relativePath>../../parley-parent/pom.xml</relativePath>
+	</parent>
+
+	<artifactId>parley-files-viewer-tui-lanterna</artifactId>
+	<name>Parley Files Viewer TUI, Lanterna</name>
+	<description>The terminal file browser on Lanterna, as an fsh plugin (browse --with lanterna) and on
+		its own (pfv-lanterna). It uses parley-files-viewer-tui for everything but the screen.</description>
+
+	<!-- In the parley-files-viewer-tui repository, not one of its own -->
+	<url>https://github.com/parley-project/parley-files-viewer-tui</url>
+	<scm>
+		<connection>scm:git:https://github.com/parley-project/parley-files-viewer-tui.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/parley-project/parley-files-viewer-tui.git</developerConnection>
+		<url>https://github.com/parley-project/parley-files-viewer-tui/tree/master</url>
+	</scm>
+
+	<properties>
+		<!-- Written to the jar manifest as Automatic-Module-Name -->
+		<parley.moduleName>us.bringardner.parley.files.viewer.tui.lanterna</parley.moduleName>
+		<parley.tui.mainClass>us.bringardner.parley.files.viewer.tui.lanterna.TuiBrowser</parley.tui.mainClass>
+		<lanterna.version>3.1.3</lanterna.version>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>${parley.tui.mainClass}</mainClass>
+						</manifest>
+						<manifestEntries>
+							<Parley-Plugin-Api>1</Parley-Plugin-Api>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.6.0</version>
+				<executions>
+					<!-- target/parley-files-viewer-tui-lanterna-VERSION-plugin.jar: the fsh plugin, with
+					     Lanterna in it (parley-files-viewer-tui's jar goes in the plugin folder too) -->
+					<execution>
+						<id>plugin</id>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<shadedClassifierName>plugin</shadedClassifierName>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<artifactSet>
+								<includes>
+									<include>com.googlecode.lanterna:lanterna</include>
+								</includes>
+							</artifactSet>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+							</transformers>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+										<exclude>module-info.class</exclude>
+										<exclude>META-INF/versions/*/module-info.class</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+					<!-- target/parley-files-viewer-tui-lanterna-VERSION-all.jar: run with java -jar (pfv-lanterna) -->
+					<execution>
+						<id>all</id>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<shadedClassifierName>all</shadedClassifierName>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>${parley.tui.mainClass}</mainClass>
+								</transformer>
+							</transformers>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+										<exclude>module-info.class</exclude>
+										<exclude>META-INF/versions/*/module-info.class</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<!-- Everything but the screen: file operations, copying, searching, editing, connections -->
+			<groupId>us.bringardner.parley</groupId>
+			<artifactId>parley-files-viewer-tui</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<!-- The text UI: pure Java, no native code -->
+			<groupId>com.googlecode.lanterna</groupId>
+			<artifactId>lanterna</artifactId>
+			<version>${lanterna.version}</version>
+		</dependency>
+		<dependency>
+			<!-- For the plugin (its browser): fsh is there when fsh loads it -->
+			<groupId>us.bringardner</groupId>
+			<artifactId>fsh</artifactId>
+			<version>2.0.0-SNAPSHOT</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.11.4</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>

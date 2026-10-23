@@ -1,5 +1,18 @@
 # Changelog
 
+## parley-files-viewer-tui 2.0.0 (unreleased)
+
+### Changed
+
+- **Two modules.** `parley-files-viewer-tui`: the browser on parley-term (Parley's own terminal
+  code, no UI library), on its own (`pfv`) and as an fsh plugin. `parley-files-viewer-tui-lanterna`:
+  the Lanterna browser, on its own (`pfv-lanterna`) and as another fsh plugin.
+- **fsh plugin instead of pfsh.** Put the jar in fsh's plugin folder (`~/.parley/fsh/plugins`):
+  fsh's `browse` opens this browser (`browse --with lanterna` the Lanterna one), and `view`, `edit`
+  and `search` are added. `scripts/pfsh` and `FshTui` are gone, and so is this module's own
+  `browse` (fsh's replaces it).
+- `view` in fsh pages on parley-term.
+
 ## parley-files-viewer-tui 1.0.0 (unreleased)
 
 First version: parley-files-viewer without a GUI, browsing parley-files file systems in a terminal,
