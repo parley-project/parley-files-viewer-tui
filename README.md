@@ -88,7 +88,7 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `g` | go to a path (in fsh, in the shell's file tree, connections included); in the box, Ctrl-U clears it and Ctrl-W goes back a folder |
 | `=` | show this pane's directory in the other pane |
 | Space, Insert | mark / unmark |
-| Shift+Up / Down (PgUp, PgDn, Home, End) | mark from where you start to here, as in a GUI list; going back unmarks |
+| Shift+Up / Down (PgUp, PgDn, Home, End) | select from where you start to here, as in a GUI list; going back unselects, and a move without Shift drops the selection (Space marks stay). macOS Terminal sends Shift+Up / Down as plain Up / Down until its profile's Keyboard settings send `\033[1;2A` and `\033[1;2B` |
 | `a` | mark all / clear marks |
 | `v` F3 | view (text, or hex for binary files; the first 1 MB) |
 | `e` F4 | edit with `$VISUAL` / `$EDITOR` (else vi, notepad on Windows) |

@@ -174,6 +174,11 @@ public class TuiBrowserTest {
 		waitFor(()->"1 marked".equals(browser.getStatus()), "one marked");
 		key(new KeyStroke(KeyType.ArrowDown, false, false, true));
 		waitFor(()->"2 marked".equals(browser.getStatus()), "two marked again");
+		// a move without Shift drops the selection
+		key(new KeyStroke(KeyType.ArrowUp));
+		waitFor(()->!text().contains("marked"), "the selection gone");
+		key(new KeyStroke(KeyType.ArrowDown, false, false, true));
+		waitFor(()->"2 marked".equals(browser.getStatus()), "a new selection");
 		type('c');
 		waitFor(()->text().contains("Copy 2 items"), "the confirm dialog");
 		key(new KeyStroke(KeyType.Enter)); // Yes

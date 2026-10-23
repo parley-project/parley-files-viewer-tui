@@ -308,7 +308,7 @@ public class FilePane extends Panel {
 	/**
 	 * Shift and an arrow (or Page Up / Down, Home, End): let the table move, marking every entry
 	 * from where the Shift selection started to here, as a GUI's list does; going back unmarks
-	 * what's passed. Marks made before it stay.
+	 * what's passed. Marks made with Space stay; a move without Shift drops the selection.
 	 */
 	public void extend(com.googlecode.lanterna.input.KeyStroke key) {
 		if( anchor < 0 ) {
@@ -330,9 +330,14 @@ public class FilePane extends Panel {
 		status.accept(marked.size()+" marked");
 	}
 
-	/** A move without Shift: the next Shift-arrow starts a new selection. */
+	/** A move without Shift: the Shift selection goes (what was marked with Space stays). */
 	public void endExtend() {
-		anchor = -1;
+		if( anchor >= 0 ) {
+			marked.clear();
+			marked.addAll(markedBefore);
+			anchor = -1;
+			table.invalidate();
+		}
 	}
 
 	/** Mark or unmark the entry under the cursor and move down. */
