@@ -48,6 +48,34 @@ final class FshTerminal {
 		return new NativeTerminal(false);
 	}
 
+	/** the shell's connections, as the browser takes them (null if none) */
+	static us.bringardner.parley.files.viewer.tui.HostConnections connections(us.bringardner.fsh.spi.ShellConnections shell) {
+		if( shell == null ) {
+			return null;
+		}
+		return new us.bringardner.parley.files.viewer.tui.HostConnections() {
+			@Override
+			public java.util.Map<String, us.bringardner.parley.files.FileSource> list() {
+				return shell.list();
+			}
+
+			@Override
+			public boolean connect(String path, us.bringardner.parley.files.FileSource top) throws IOException {
+				return shell.connect(path, top);
+			}
+
+			@Override
+			public void disconnect(String path) throws IOException {
+				shell.disconnect(path);
+			}
+
+			@Override
+			public us.bringardner.parley.files.FileSource file(String path) throws IOException {
+				return shell.file(path);
+			}
+		};
+	}
+
 	/** 'text', quoted for the shell. */
 	static String quote(String text) {
 		return "'"+text.replace("'", "'\\''")+"'";

@@ -67,6 +67,11 @@ public class TermBrowser implements Tui.App {
 		/** Give the terminal to a program (an editor, a shell) and take it back when it exits. */
 		int runProgram(List<String> command, File dir) throws IOException;
 
+		/** the connections of the program the browser runs in (fsh's), or null: standalone */
+		default us.bringardner.parley.files.viewer.tui.HostConnections connections() {
+			return null;
+		}
+
 	}
 
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
@@ -101,6 +106,7 @@ public class TermBrowser implements Tui.App {
 			"  s                            search below this directory (name and/or text)",
 			"  o                            connect this pane to a file system (SFTP, JDBC, ...), or Local",
 			"  x                            back to the local disk, where this pane last was there",
+			"  D                            disconnect a connection (in fsh: one of the shell's)",
 			"  t                            shell in this directory (local file systems)",
 			"  h                            show / hide hidden files",
 			"  f                            sort by name, size, modified",
@@ -241,6 +247,7 @@ public class TermBrowser implements Tui.App {
 				case 's': search(); return true;
 				case 'o': connect(); return true;
 				case 'x': disconnect(); return true;
+				case 'D': disconnectChosen(); return true;
 				case 't': shell(); return true;
 				case 'g': gotoPath(); return true;
 				case 'h': pane().setShowHidden(!pane().isShowHidden()); return true;
@@ -681,7 +688,8 @@ public class TermBrowser implements Tui.App {
 					error("Can't connect", e);
 					return;
 				}
-				dialogs.open(ConnectForm.create(factory, dialogs, (values, startIn)->{
+				us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
+				dialogs.open(ConnectForm.create(factory, dialogs, hc == null ? null : hc.list().keySet(), (values, startIn, connectAt)->{
 					String label = labels.get(idx);
 					setStatus("Connecting to "+label+" ...");
 					worker.execute(()->{
@@ -695,10 +703,14 @@ public class TermBrowser implements Tui.App {
 									note = e.getMessage()+"; opened "+start.getAbsolutePath();
 								}
 							}
-							FileSource dir = start;
+							FileSource dir = hc == null ? start : connectInHost(hc, factory, start, connectAt);
 							String message = note;
 							ui.execute(()->{
-								opened.add(factory);
+								if( hc == null ) {
+									opened.add(factory);
+								} else {
+									setStatus(label+" connected at "+connectAt);
+								}
 								switchTo(target, dir);
 								if( message != null ) {
 									dialogs.open(new Dialog.Message("Start in", message));
@@ -715,6 +727,93 @@ public class TermBrowser implements Tui.App {
 				}));
 			});
 		}, null));
+	}
+
+	/**
+	 * Connect factory's file system in the host at path (it stays after the browser ends), and
+	 * return start as the host has it (path/...). The factory is closed if that fails.
+	 */
+	private static FileSource connectInHost(us.bringardner.parley.files.viewer.tui.HostConnections hc,
+			FileSourceFactory factory, FileSource start, String path) throws IOException {
+		FileSource[] roots = factory.listRoots();
+		IOException problem = null;
+		if( roots == null || roots.length != 1 ) {
+			problem = new IOException("It has "+(roots == null ? 0 : roots.length)+" top folders; it can be connected only with one");
+		} else if( !hc.connect(path, roots[0])) {
+			problem = new IOException("Something is already connected at "+path);
+		}
+		if( problem != null ) {
+			try {
+				factory.disConnect();
+			} catch (IOException e) {
+				// (what went wrong first is what matters)
+			}
+			throw problem;
+		}
+		String top = roots[0].getAbsolutePath();
+		String rel = FileOps.relativePath(roots[0], start);
+		boolean under = !start.getAbsolutePath().equals(top) && !rel.equals(start.getAbsolutePath());
+		return hc.file(under ? path+"/"+rel.replace('\\', '/') : path);
+	}
+
+	/** D: choose a connection and disconnect it (in fsh, the shell's; standalone, this browser's) */
+	private void disconnectChosen() {
+		us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
+		List<String> labels = new ArrayList<>();
+		List<Runnable> actions = new ArrayList<>();
+		if( hc != null ) {
+			for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
+				String path = e.getKey();
+				labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
+				actions.add(()->worker.execute(()->{
+					try {
+						hc.disconnect(path);
+						ui.execute(()->{
+							leave(p->p.getDirectory().getAbsolutePath().equals(path) || p.getDirectory().getAbsolutePath().startsWith(path+"/"));
+							setStatus("Disconnected "+path);
+						});
+					} catch (IOException e2) {
+						ui.execute(()->error("Can't disconnect "+path, e2));
+					}
+				}));
+			}
+		} else {
+			for(FileSourceFactory f : new ArrayList<>(opened)) {
+				labels.add(FileOps.describe(f));
+				actions.add(()->{
+					opened.remove(f);
+					leave(p->p.getFactory() == f);
+					worker.execute(()->{
+						try {
+							f.disConnect();
+						} catch (IOException e2) {
+							// it's being let go anyway
+						}
+					});
+					setStatus("Disconnected "+FileOps.describe(f));
+				});
+			}
+		}
+		if( labels.isEmpty()) {
+			setStatus("Nothing is connected");
+			return;
+		}
+		dialogs.open(new Dialog.Choose("Disconnect", hc != null ? "The shell's connections" : "This browser's connections",
+				labels, 64, idx->dialogs.open(new Dialog.Confirm("Disconnect", "Disconnect "+labels.get(idx)+"?",
+						actions.get(idx), null)), null));
+	}
+
+	/** the panes showing a file system that is going away go back to the local disk */
+	private void leave(java.util.function.Predicate<TermPane> on) {
+		for(TermPane p : panes) {
+			if( p.getDirectory() != null && on.test(p)) {
+				try {
+					p.go(localStart(p));
+				} catch (IOException e) {
+					error("Can't open the local folder", e);
+				}
+			}
+		}
 	}
 
 	/** x: back to the local disk, where this pane last was there (else home), asking before a connection is closed. */

@@ -35,6 +35,34 @@ import us.bringardner.parley.files.FileSource;
  */
 public class LanternaBrowser implements BrowserProvider {
 
+	/** the shell's connections, as the browser takes them (null if none) */
+	static us.bringardner.parley.files.viewer.tui.HostConnections connections(us.bringardner.fsh.spi.ShellConnections shell) {
+		if( shell == null ) {
+			return null;
+		}
+		return new us.bringardner.parley.files.viewer.tui.HostConnections() {
+			@Override
+			public java.util.Map<String, FileSource> list() {
+				return shell.list();
+			}
+
+			@Override
+			public boolean connect(String path, FileSource top) throws IOException {
+				return shell.connect(path, top);
+			}
+
+			@Override
+			public void disconnect(String path) throws IOException {
+				shell.disconnect(path);
+			}
+
+			@Override
+			public FileSource file(String path) throws IOException {
+				return shell.file(path);
+			}
+		};
+	}
+
 	@Override
 	public String name() {
 		return "lanterna";
@@ -64,6 +92,7 @@ public class LanternaBrowser implements BrowserProvider {
 		try {
 			Tui.run(screen->{
 				TuiBrowser b = new TuiBrowser(screen, request.left, request.right, request.onePane);
+				b.setConnections(connections(request.connections));
 				b.run();
 				end[0] = b.getActiveDirectory();
 			});

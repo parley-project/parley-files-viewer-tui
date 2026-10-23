@@ -12,6 +12,10 @@
   and `search` are added. `scripts/pfsh` and `FshTui` are gone, and so is this module's own
   `browse` (fsh's replaces it).
 - `view` in fsh pages on parley-term.
+- In fsh, a file system connected in the browser is connected in the shell, at **Connect at** (a new
+  field in the connect form): it stays after the browser ends. **`D`** disconnects one of the shell's
+  connections (on its own, one of the browser's). Moving a pane off a connection no longer closes it
+  in fsh.
 
 ## parley-files-viewer-tui 1.0.0 (unreleased)
 
