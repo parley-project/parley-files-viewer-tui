@@ -91,7 +91,16 @@ public class Search extends ShellCommand {
 					ctx.error(NAME+": "+file.getAbsolutePath()+": "+e.getMessage());
 				}
 			});
+			// Ctrl-C stops it (fsh asks a command to stop through its context); Ctrl-Z pauses it
+			job.cancelWhen(()->{
+				ctx.waitWhilePaused();
+				return ctx.getException() != null;
+			});
 			job.run();
+			if( ctx.getException() != null ) {
+				ctx.stdout.flush();
+				throw ctx.getException();
+			}
 		}
 		ctx.stdout.flush();
 		// as grep: 0 found something, 1 found nothing, 2 trouble
