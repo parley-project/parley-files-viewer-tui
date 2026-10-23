@@ -262,6 +262,16 @@ public class JobsTest {
 	}
 
 	@Test
+	public void pathsRelativeToTheSearchRoot() throws IOException {
+		FileSource root = FileOps.fromLocalFile(tmp.toFile());
+		FileSource deep = FileOps.fromLocalFile(tmp.resolve("sub/deep.txt").toFile());
+		assertEquals("sub/deep.txt".replace('/', java.io.File.separatorChar), FileOps.relativePath(root, deep));
+		// not under it: the absolute path
+		FileSource other = FileOps.fromLocalFile(tmp.getParent().toFile());
+		assertEquals(other.getAbsolutePath(), FileOps.relativePath(root, other));
+	}
+
+	@Test
 	public void listsInstalledFileSystems() throws IOException {
 		List<String> types = Connections.types();
 		assertEquals("fileproxy", types.get(0));

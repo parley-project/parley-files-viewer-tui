@@ -1017,7 +1017,8 @@ public class TuiBrowser {
 
 				@Override
 				public void found(FileSource file, String line) {
-					String label = file.getAbsolutePath()+(line == null ? "" : "   : "+line);
+					// (relative to the folder searched, which the title shows, so the matching line fits)
+					String label = FileOps.relativePath(root, file)+(line == null ? "" : "   : "+line);
 					gui.getGUIThread().invokeLater(()->results.addItem(label, ()->{
 						job.cancel();
 						close();

@@ -54,6 +54,26 @@ public final class FileOps {
 		return (value < 10 ? String.format("%.1f", value) : String.format("%.0f", value))+" "+units.charAt(idx);
 	}
 
+
+	/**
+	 * file's path relative to root (sub/deep.txt for root/sub/deep.txt), as search results show it,
+	 * or its absolute path if it isn't under root.
+	 */
+	public static String relativePath(FileSource root, FileSource file) {
+		String r = root.getAbsolutePath();
+		String f = file.getAbsolutePath();
+		if( f.length() > r.length() && f.startsWith(r)) {
+			char c = f.charAt(r.length());
+			if( r.endsWith("/") || r.endsWith("\\")) {
+				return f.substring(r.length());
+			}
+			if( c == '/' || c == '\\' ) {
+				return f.substring(r.length()+1);
+			}
+		}
+		return f;
+	}
+
 	/** yyyy-MM-dd HH:mm, or blank when the time isn't known. */
 	public static String formatDate(long millis) {
 		if( millis <= 0 ) {

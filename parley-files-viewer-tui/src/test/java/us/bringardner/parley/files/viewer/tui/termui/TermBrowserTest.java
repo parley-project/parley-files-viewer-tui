@@ -358,7 +358,7 @@ public class TermBrowserTest {
 		type("NEEDLE");
 		key(Key.Code.ENTER);
 		pumpUntil(()->screen().contains("1 found"));
-		assertScreen("deep.txt", "the needle is here");
+		assertScreen("sub/deep.txt   : the needle is here");
 		key(Key.Code.ENTER);
 		pumpUntil(()->activeName().equals("sub") && b.getStatus().startsWith("deep.txt"));
 	}
