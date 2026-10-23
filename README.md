@@ -135,6 +135,11 @@ edit /build/etc/app.properties
 browse -c /build
 ```
 
+In fsh, a file system you connect in the browser (`o`) is connected in the shell too, at the
+path in the form's **Connect at** field (`/sftp-build`, say): it stays when you quit, `ls`, `cd`
+and `browse -c` reach it, and fsh's `disconnect` closes it. `D` in the browser lists the shell's
+connections and disconnects one. On its own (`pfv`), `D` lists the browser's own.
+
 fsh finds them in its plugin folder as it starts (its `CommandProvider` and `BrowserProvider`); fsh itself has no dependency on this module.
 
 ## How it maps to parley-files-viewer

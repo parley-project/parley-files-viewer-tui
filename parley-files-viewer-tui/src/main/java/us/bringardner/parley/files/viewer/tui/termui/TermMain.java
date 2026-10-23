@@ -97,6 +97,15 @@ public final class TermMain {
 
 	/** Runs the browser on terminal until it's quit; returns the directory of the pane that had the keyboard. */
 	public static FileSource run(FileSource left, FileSource right, boolean single, Terminal terminal) throws Exception {
+		return run(left, right, single, terminal, null);
+	}
+
+	/**
+	 * Runs the browser on terminal until it's quit, in a host with connections (fsh's: what is
+	 * connected in the browser is connected there), or none (null).
+	 */
+	public static FileSource run(FileSource left, FileSource right, boolean single, Terminal terminal,
+			us.bringardner.parley.files.viewer.tui.HostConnections connections) throws Exception {
 		ExecutorService worker = Executors.newCachedThreadPool(r->{
 			Thread t = new Thread(r, "term-browser-worker");
 			t.setDaemon(true);
@@ -104,7 +113,17 @@ public final class TermMain {
 		});
 		Tui tui = new Tui(terminal);
 		AtomicReference<TermBrowser> browser = new AtomicReference<>();
-		TermBrowser.Host host = (command, dir)->tui.lend(new ProcessBuilder(command).directory(dir));
+		TermBrowser.Host host = new TermBrowser.Host() {
+			@Override
+			public int runProgram(List<String> command, File dir) throws IOException {
+				return tui.lend(new ProcessBuilder(command).directory(dir));
+			}
+
+			@Override
+			public us.bringardner.parley.files.viewer.tui.HostConnections connections() {
+				return connections;
+			}
+		};
 		try {
 			browser.set(new TermBrowser(left, right, single, worker, tui.ui, host));
 			tui.run(browser.get());

@@ -57,7 +57,8 @@ public class TerminalBrowser implements BrowserProvider {
 	@Override
 	public FileSource browse(ShellContext ctx, BrowseRequest request) throws IOException {
 		try {
-			return TermMain.run(request.left, request.right, request.onePane, FshTerminal.terminal(ctx));
+			return TermMain.run(request.left, request.right, request.onePane, FshTerminal.terminal(ctx),
+					FshTerminal.connections(request.connections));
 		} catch (IOException | RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

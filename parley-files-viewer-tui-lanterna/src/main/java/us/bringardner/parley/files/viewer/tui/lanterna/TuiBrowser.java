@@ -123,6 +123,7 @@ public class TuiBrowser {
 			"  s                            search below this directory (name and/or text)",
 			"  o                            connect this pane to a file system (SFTP, JDBC, ...), or Local",
 			"  x                            back to the local disk, where this pane last was there",
+			"  D                            disconnect a connection (in fsh: one of the shell's)",
 			"  t                            shell in this directory (local file systems)",
 			"  h                            show / hide hidden files",
 			"  f                            sort by name, size, modified",
@@ -158,6 +159,14 @@ public class TuiBrowser {
 	 * @param single start with one pane (the full width) instead of two side by side; the other
 	 *        location is still there, a Tab away
 	 */
+	/** the connections of the program this runs in (fsh's), or null: standalone */
+	private HostConnections connections;
+
+	/** Connect file systems opened here in the host (fsh): they stay after the browser ends. */
+	public void setConnections(HostConnections connections) {
+		this.connections = connections;
+	}
+
 	public TuiBrowser(Screen screen, FileSource left, FileSource right, boolean single) {
 		this.screen = screen;
 		this.single = single;
@@ -309,6 +318,7 @@ public class TuiBrowser {
 				case 's': search(); return true;
 				case 'o': connect(); return true;
 				case 'x': disconnect(); return true;
+				case 'D': disconnectChosen(); return true;
 				case 't': shell(); return true;
 				case 'g': gotoPath(); return true;
 				case 'h': pane().setShowHidden(!pane().isShowHidden()); return true;
@@ -749,7 +759,8 @@ public class TuiBrowser {
 			error("Can't connect", e);
 			return;
 		}
-		ConnectDialog.Answer answer = ConnectDialog.show(gui, factory);
+		HostConnections hc = connections;
+		ConnectDialog.Answer answer = ConnectDialog.show(gui, factory, hc == null ? null : hc.list().keySet());
 		if( answer == null ) {
 			return;
 		}
@@ -765,10 +776,14 @@ public class TuiBrowser {
 						note = e.getMessage()+"; opened "+start.getAbsolutePath();
 					}
 				}
-				FileSource dir = start;
+				FileSource dir = hc == null ? start : connectInHost(hc, factory, start, answer.connectAt);
 				String message = note;
 				gui.getGUIThread().invokeLater(()->{
-					opened.add(factory);
+					if( hc == null ) {
+						opened.add(factory);
+					} else {
+						setStatus(label+" connected at "+answer.connectAt);
+					}
 					switchTo(target, dir);
 					if( message != null ) {
 						// a dialog, not the status line: the pane's listing replaces that as it loads
@@ -780,6 +795,95 @@ public class TuiBrowser {
 				error("Can't connect to "+label, e);
 			}
 		});
+	}
+
+	/**
+	 * Connect factory's file system in the host at path (it stays after the browser ends), and
+	 * return start as the host has it (path/...). The factory is closed if that fails.
+	 */
+	private static FileSource connectInHost(HostConnections hc, FileSourceFactory factory, FileSource start, String path) throws IOException {
+		FileSource[] roots = factory.listRoots();
+		IOException problem = null;
+		if( roots == null || roots.length != 1 ) {
+			problem = new IOException("It has "+(roots == null ? 0 : roots.length)+" top folders; it can be connected only with one");
+		} else if( !hc.connect(path, roots[0])) {
+			problem = new IOException("Something is already connected at "+path);
+		}
+		if( problem != null ) {
+			try {
+				factory.disConnect();
+			} catch (IOException e) {
+				// (what went wrong first is what matters)
+			}
+			throw problem;
+		}
+		String top = roots[0].getAbsolutePath();
+		String rel = FileOps.relativePath(roots[0], start);
+		boolean under = !start.getAbsolutePath().equals(top) && !rel.equals(start.getAbsolutePath());
+		return hc.file(under ? path+"/"+rel.replace('\\', '/') : path);
+	}
+
+	/** D: choose a connection and disconnect it (in fsh, the shell's; standalone, this browser's) */
+	private void disconnectChosen() {
+		HostConnections hc = connections;
+		List<String> labels = new ArrayList<>();
+		List<Runnable> actions = new ArrayList<>();
+		if( hc != null ) {
+			for(java.util.Map.Entry<String, FileSource> e : hc.list().entrySet()) {
+				String path = e.getKey();
+				labels.add(path+"  ("+FileOps.describe(e.getValue().getFileSourceFactory())+")");
+				actions.add(()->worker.execute(()->{
+					try {
+						hc.disconnect(path);
+						gui.getGUIThread().invokeLater(()->{
+							leave(p->p.getDirectory() != null && (p.getDirectory().getAbsolutePath().equals(path)
+									|| p.getDirectory().getAbsolutePath().startsWith(path+"/")));
+							setStatus("Disconnected "+path);
+						});
+					} catch (IOException e2) {
+						error("Can't disconnect "+path, e2);
+					}
+				}));
+			}
+		} else {
+			for(FileSourceFactory f : new ArrayList<>(opened)) {
+				labels.add(FileOps.describe(f));
+				actions.add(()->{
+					opened.remove(f);
+					leave(p->p.getFactory() == f);
+					worker.execute(()->{
+						try {
+							f.disConnect();
+						} catch (IOException e2) {
+							// it's being let go anyway
+						}
+					});
+					setStatus("Disconnected "+FileOps.describe(f));
+				});
+			}
+		}
+		if( labels.isEmpty()) {
+			setStatus("Nothing is connected");
+			return;
+		}
+		String chosen = ListSelectDialog.showDialog(gui, "Disconnect",
+				hc != null ? "The shell's connections" : "This browser's connections", labels.toArray(new String[0]));
+		if( chosen != null && confirm("Disconnect", "Disconnect "+chosen+"?")) {
+			actions.get(labels.indexOf(chosen)).run();
+		}
+	}
+
+	/** the panes showing a file system that is going away go back to the local disk */
+	private void leave(java.util.function.Predicate<FilePane> on) {
+		for(FilePane p : panes) {
+			if( on.test(p)) {
+				try {
+					p.go(localStart(p));
+				} catch (IOException e) {
+					error("Can't open the local folder", e);
+				}
+			}
+		}
 	}
 
 	/** x: back to the local disk, where this pane last was there (else home), asking before a connection is closed. */

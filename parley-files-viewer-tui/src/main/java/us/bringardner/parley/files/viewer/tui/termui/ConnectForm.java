@@ -49,6 +49,13 @@ import us.bringardner.parley.term.tty.Key;
 final class ConnectForm {
 
 	static final String START_IN_HELP = "The folder to open once connected; empty: where the file system starts";
+	static final String CONNECT_AT_HELP = "Where it is connected in the shell's file tree; it stays connected when you quit (D disconnects)";
+
+	/** what the form gives once its values are valid */
+	interface Done {
+		/** @param connectAt where to connect it in the host's tree, or null (no host) */
+		void ok(Properties values, String startIn, String connectAt);
+	}
 
 	private ConnectForm() {
 	}
@@ -57,6 +64,15 @@ final class ConnectForm {
 	 * @param ok given the values and the folder to start in, once they're valid
 	 */
 	static Dialog.Form create(FileSourceFactory factory, Dialog.Stack dialogs, BiConsumer<Properties, String> ok) {
+		return create(factory, dialogs, null, (values, startIn, connectAt)->ok.accept(values, startIn));
+	}
+
+	/**
+	 * @param taken  the paths the host's connections are at, or null if there's no host (then
+	 *               there's no Connect at)
+	 * @param ok     given the values, the folder to start in and where to connect it, once valid
+	 */
+	static Dialog.Form create(FileSourceFactory factory, Dialog.Stack dialogs, java.util.Set<String> taken, Done ok) {
 		Dialog.Form form = new Dialog.Form("Connect: "+Connections.label(factory.getTypeId()));
 		form.width = 76;
 		form.footer = "Enter: connect   Esc: cancel   Tab: next field";
@@ -91,6 +107,15 @@ final class ConnectForm {
 		Field.Text startIn = new Field.Text("", false, false);
 		startIn.help = START_IN_HELP;
 		form.add("Start in", startIn);
+		Field.Text connectAt = null;
+		String[] suggested = {null};
+		if( taken != null ) {
+			suggested[0] = us.bringardner.parley.files.viewer.tui.HostConnections.suggestPath(factory.getTypeId(), initial, taken);
+			connectAt = new Field.Text(suggested[0], false, false);
+			connectAt.help = CONNECT_AT_HELP;
+			form.add("Connect at", connectAt);
+		}
+		Field.Text at = connectAt;
 
 		form.buttons.add(new Field.Button("Connect", form::submit));
 		form.buttons.add(new Field.Button("Cancel", ()->form.cancel()));
@@ -103,7 +128,22 @@ final class ConnectForm {
 			if( !problems.isEmpty()) {
 				return String.join("\n", problems);
 			}
-			ok.accept(p, startIn.value().trim());
+			String where = null;
+			if( at != null ) {
+				where = at.value().trim();
+				if( where.equals(suggested[0])) {
+					// (not changed: what the values now suggest, the host typed in included)
+					where = us.bringardner.parley.files.viewer.tui.HostConnections.suggestPath(factory.getTypeId(), p, taken);
+				}
+				while( where.length() > 1 && where.endsWith("/")) {
+					where = where.substring(0, where.length()-1);
+				}
+				String problem = us.bringardner.parley.files.viewer.tui.HostConnections.checkPath(where, taken);
+				if( problem != null ) {
+					return problem;
+				}
+			}
+			ok.ok(p, startIn.value().trim(), where);
 			return null;
 		};
 		return form;

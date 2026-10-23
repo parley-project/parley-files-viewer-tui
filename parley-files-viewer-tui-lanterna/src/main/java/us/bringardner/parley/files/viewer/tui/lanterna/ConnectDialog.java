@@ -74,14 +74,18 @@ public final class ConnectDialog extends BasicWindow {
 		public final Properties values;
 		/** The folder to open once connected; empty to start where the file system does. */
 		public final String startIn;
+		/** Where to connect it in the host's file tree (fsh's), or null when there's no host. */
+		public final String connectAt;
 
-		Answer(Properties values, String startIn) {
+		Answer(Properties values, String startIn, String connectAt) {
 			this.values = values;
 			this.startIn = startIn;
+			this.connectAt = connectAt;
 		}
 	}
 
 	static final String START_IN_HELP = "The folder to open once connected; empty: where the file system starts";
+	static final String CONNECT_AT_HELP = "Where it is connected in the shell's file tree; it stays connected when you quit (D disconnects)";
 	private static final int HELP_WIDTH = 60;
 
 	private final WindowBasedTextGUI gui;
@@ -95,11 +99,15 @@ public final class ConnectDialog extends BasicWindow {
 	private final Label help = new Label("");
 	private final TextBox startIn = new SubmitBox("");
 	private final Component[] startInRow;
+	/** Connect at, when there's a host (else null) */
+	private final TextBox connectAt;
+	private final Component[] connectAtRow;
+	private final String suggested;
 	private final Button more;
 	private boolean showAdvanced;
 	private boolean ok;
 
-	private ConnectDialog(WindowBasedTextGUI gui, FileSourceFactory factory) {
+	private ConnectDialog(WindowBasedTextGUI gui, FileSourceFactory factory, java.util.Set<String> taken) {
 		super("Connect: "+Connections.label(factory.getTypeId()));
 		this.gui = gui;
 		setHints(Arrays.asList(Window.Hint.CENTERED, Window.Hint.MODAL));
@@ -116,6 +124,15 @@ public final class ConnectDialog extends BasicWindow {
 			anyAdvanced |= s.advanced();
 		}
 		startInRow = new Component[] {new Label("Start in"), startIn, new EmptySpace()};
+		if( taken != null ) {
+			suggested = HostConnections.suggestPath(factory.getTypeId(), initial, taken);
+			connectAt = new SubmitBox(suggested);
+			connectAtRow = new Component[] {new Label("Connect at"), connectAt, new EmptySpace()};
+		} else {
+			suggested = null;
+			connectAt = null;
+			connectAtRow = new Component[0];
+		}
 
 		more = new Button("More...", ()->{
 			showAdvanced = !showAdvanced;
@@ -178,6 +195,9 @@ public final class ConnectDialog extends BasicWindow {
 		for(Component c : startInRow) {
 			form.addComponent(c);
 		}
+		for(Component c : connectAtRow) {
+			form.addComponent(c);
+		}
 		more.setLabel(showAdvanced ? "Fewer" : "More...");
 		if( focused instanceof Component && ((Component) focused).getParent() != null ) {
 			setFocusedInteractable(focused);
@@ -200,6 +220,8 @@ public final class ConnectDialog extends BasicWindow {
 			}
 		} else if( f == startIn ) {
 			text = START_IN_HELP;
+		} else if( f != null && f == connectAt ) {
+			text = CONNECT_AT_HELP;
 		}
 		help.setText(wrap(text, HELP_WIDTH, 2));
 	}
@@ -412,7 +434,18 @@ public final class ConnectDialog extends BasicWindow {
 	 * @return the values and the folder to start in, or null if canceled
 	 */
 	public static Answer show(WindowBasedTextGUI gui, FileSourceFactory factory) {
-		ConnectDialog dialog = new ConnectDialog(gui, factory);
+		return show(gui, factory, null);
+	}
+
+	/**
+	 * Ask for the settings and (taken not null: there's a host) where to connect it, checking
+	 * them until they're valid or the user cancels.
+	 *
+	 * @param taken the paths the host's connections are at, or null
+	 * @return the answer, or null if canceled
+	 */
+	public static Answer show(WindowBasedTextGUI gui, FileSourceFactory factory, java.util.Set<String> taken) {
+		ConnectDialog dialog = new ConnectDialog(gui, factory, taken);
 		while( true ) {
 			dialog.ok = false;
 			gui.addWindowAndWait(dialog);
@@ -421,8 +454,23 @@ public final class ConnectDialog extends BasicWindow {
 			}
 			Properties p = dialog.collect();
 			List<String> errors = factory.validateConnection(p);
+			String where = null;
+			if( errors.isEmpty() && dialog.connectAt != null ) {
+				where = dialog.connectAt.getText().trim();
+				if( where.equals(dialog.suggested)) {
+					// (not changed: what the values now suggest, the host typed in included)
+					where = HostConnections.suggestPath(factory.getTypeId(), p, taken);
+				}
+				while( where.length() > 1 && where.endsWith("/")) {
+					where = where.substring(0, where.length()-1);
+				}
+				String problem = HostConnections.checkPath(where, taken);
+				if( problem != null ) {
+					errors = java.util.Collections.singletonList(problem);
+				}
+			}
 			if( errors.isEmpty()) {
-				return new Answer(p, dialog.startIn.getText().trim());
+				return new Answer(p, dialog.startIn.getText().trim(), where);
 			}
 			dialog.problems.setText(String.join("\n", errors));
 		}

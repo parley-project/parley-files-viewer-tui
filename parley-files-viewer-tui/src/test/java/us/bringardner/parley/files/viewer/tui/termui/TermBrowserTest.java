@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import us.bringardner.parley.files.FileSource;
+import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.files.viewer.tui.Connections;
 import us.bringardner.parley.files.viewer.tui.FileOps;
 import us.bringardner.parley.term.screen.Dialog;
@@ -468,6 +469,96 @@ public class TermBrowserTest {
 		pumpIdle();
 		assertTrue(mem.isConnected());
 		assertEquals("hello", read(mem.createFileSource("/shared/a.txt")));
+	}
+
+	/** A host's connections (as fsh's): path -> the top folder connected there. */
+	private static final class FakeHost implements us.bringardner.parley.files.viewer.tui.HostConnections {
+		final java.util.Map<String, FileSource> connected = new java.util.TreeMap<>();
+
+		@Override
+		public java.util.Map<String, FileSource> list() {
+			return new java.util.TreeMap<>(connected);
+		}
+
+		@Override
+		public boolean connect(String path, FileSource top) {
+			return connected.putIfAbsent(path, top) == null;
+		}
+
+		@Override
+		public void disconnect(String path) throws IOException {
+			FileSource top = connected.remove(path);
+			if( top == null ) {
+				throw new IOException("nothing is connected at "+path);
+			}
+			top.getFileSourceFactory().disConnect();
+		}
+
+		@Override
+		public FileSource file(String path) throws IOException {
+			for(java.util.Map.Entry<String, FileSource> e : connected.entrySet()) {
+				if( path.equals(e.getKey()) || path.startsWith(e.getKey()+"/")) {
+					String rest = path.substring(e.getKey().length());
+					return rest.isEmpty() ? e.getValue() : e.getValue().getFileSourceFactory().createFileSource(rest);
+				}
+			}
+			throw new IOException(path+" isn't connected");
+		}
+	}
+
+	/**
+	 * In a host with connections (fsh), o connects the file system in the host at Connect at, so it
+	 * stays when the browser ends; D lists them and disconnects one, and a pane on it goes back to
+	 * the local disk.
+	 */
+	@Test
+	public void connectsInTheHostAndDDisconnects() {
+		FakeHost fake = new FakeHost();
+		b = new TermBrowser(src, dest, false, worker, ui, new TermBrowser.Host() {
+			@Override
+			public int runProgram(List<String> command, File dir) {
+				return 0;
+			}
+
+			@Override
+			public us.bringardner.parley.files.viewer.tui.HostConnections connections() {
+				return fake;
+			}
+		});
+		pumpUntil(()->screen().contains("a.txt"));
+		pumpIdle();
+		connectTo("memory");
+		assertScreen("Connect: memory", "Connect at", "/memory");
+		key(Key.Code.ENTER);
+		pumpUntil(()->!fake.connected.isEmpty() && lines().get(0).startsWith("> [memory"));
+		pumpIdle();
+		assertEquals(java.util.Set.of("/memory"), fake.connected.keySet());
+		FileSourceFactory mem = fake.connected.get("/memory").getFileSourceFactory();
+		// leaving it doesn't disconnect it: the host has it
+		ch('x');
+		pumpIdle();
+		assertFalse(b.hasDialog(), screen());
+		pumpUntil(()->lines().get(0).startsWith("> [Local]"));
+		assertTrue(mem.isConnected());
+		// a second one: the suggestion is not taken
+		connectTo("memory");
+		assertScreen("/memory-2");
+		key(Key.Code.ESC);
+		pumpIdle();
+		while( b.hasDialog()) {
+			key(Key.Code.ESC);
+		}
+		// D: the host's connections
+		ch('D');
+		assertScreen("Disconnect", "The shell's connections", "/memory  (");
+		key(Key.Code.ENTER);
+		assertScreen("Disconnect /memory (memory)?");
+		ch('y');
+		pumpUntil(()->fake.connected.isEmpty());
+		pumpIdle();
+		assertFalse(mem.isConnected());
+		ch('D');
+		assertEquals("Nothing is connected", b.getStatus());
 	}
 
 	@Test
