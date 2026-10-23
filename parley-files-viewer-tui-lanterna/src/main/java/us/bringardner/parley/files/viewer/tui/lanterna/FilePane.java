@@ -195,9 +195,20 @@ public class FilePane extends Panel {
 		go(dir, null);
 	}
 
+	private java.util.function.UnaryOperator<FileSource> folders = java.util.function.UnaryOperator.identity();
+
+	/**
+	 * How a folder the pane goes to is shown: in fsh, as the shell's file tree has it, so its
+	 * connections are listed (a local folder with none under it is a plain local folder in fsh,
+	 * and so is its parent); standalone, as it is.
+	 */
+	public void setFolders(java.util.function.UnaryOperator<FileSource> folders) {
+		this.folders = folders;
+	}
+
 	/** Show dir and put the cursor on the entry called select (if there is one). */
 	public void go(FileSource dir, String select) {
-		history.go(dir);
+		history.go(folders.apply(dir));
 		marked.clear();
 		load(select);
 	}

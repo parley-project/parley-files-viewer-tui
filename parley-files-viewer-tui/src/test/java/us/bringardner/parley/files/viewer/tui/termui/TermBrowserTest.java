@@ -583,4 +583,142 @@ public class TermBrowserTest {
 		key(Key.Code.ESC);
 		assertFalse(b.hasDialog());
 	}
+
+	/** A browser in a real fsh shell, as fsh's browse runs it: the host's connections are the shell's. */
+	private void startInShell(us.bringardner.fsh.Console console) {
+		us.bringardner.parley.files.viewer.tui.HostConnections shell = new us.bringardner.parley.files.viewer.tui.HostConnections() {
+			@Override
+			public java.util.Map<String, FileSource> list() {
+				try {
+					return console.connections();
+				} catch (IOException e) {
+					return java.util.Collections.emptyMap();
+				}
+			}
+
+			@Override
+			public boolean connect(String path, FileSource top) throws IOException {
+				return console.mount(top, path);
+			}
+
+			@Override
+			public void disconnect(String path) throws IOException {
+				console.disconnect(path);
+			}
+
+			@Override
+			public FileSource file(String path) throws IOException {
+				return console.createFileSource(path);
+			}
+		};
+		b = new TermBrowser(src, dest, false, worker, ui, new TermBrowser.Host() {
+			@Override
+			public int runProgram(List<String> command, File dir) {
+				return 0;
+			}
+
+			@Override
+			public us.bringardner.parley.files.viewer.tui.HostConnections connections() {
+				return shell;
+			}
+		});
+		pumpUntil(()->screen().contains("a.txt"));
+		pumpIdle();
+	}
+
+	/** A memory file system with inmem.txt in it, connected in the shell at the temp folder's conn. */
+	private us.bringardner.fsh.Console shellWithConnection() throws Exception {
+		us.bringardner.fsh.Console console = new us.bringardner.fsh.Console();
+		us.bringardner.parley.files.memory.MemoryFileSourceFactory m = new us.bringardner.parley.files.memory.MemoryFileSourceFactory();
+		m.connect(new java.util.Properties());
+		FileSource top = m.listRoots()[0];
+		write(top.getChild("inmem.txt"), "in memory\n");
+		assertTrue(console.mount(top, tmpPath()+"/conn"));
+		return console;
+	}
+
+	private String tmpPath() {
+		return tmp.toString().replace('\\', '/');
+	}
+
+	/**
+	 * In fsh, g goes to a path in the shell's file tree, so a connection in that folder is listed
+	 * (g used to look the path up on the local disk alone); the box names the pane's file system as
+	 * its header does (Local, not fileproxy), and Ctrl-W in it goes back a folder.
+	 */
+	@Test
+	public void gotoInTheShellListsItsConnections() throws Exception {
+		startInShell(shellWithConnection());
+		assertFalse(screen().contains("conn"), screen());
+		ch('g');
+		assertScreen("Go to", "Path on Local", "Ctrl-U: clear", "Ctrl-W: back a folder", tmpPath()+"/src");
+		assertFalse(screen().contains("fileproxy"), screen());
+		b.key(Key.ctrl('w'));
+		key(Key.Code.ENTER);
+		pumpUntil(()->screen().contains("conn"));
+		pumpIdle();
+		// and into it: the memory file system's files
+		ch('g');
+		b.key(Key.ctrl('u'));
+		type("conn");
+		key(Key.Code.ENTER);
+		pumpUntil(()->screen().contains("inmem.txt"));
+		// an absolute path in the shell's tree
+		ch('g');
+		b.key(Key.ctrl('u'));
+		type(tmpPath()+"/conn/inmem.txt");
+		key(Key.Code.ENTER);
+		pumpUntil(()->screen().contains("inmem.txt"));
+		pumpIdle();
+		assertEquals("conn", activeName());
+	}
+
+	/**
+	 * In fsh, going up from a local folder with no connection under it (a plain local folder in fsh)
+	 * reaches the shell's tree, so the connections are listed (they weren't: the parent was the
+	 * local disk's).
+	 */
+	@Test
+	public void upInTheShellListsItsConnections() throws Exception {
+		startInShell(shellWithConnection());
+		key(Key.Code.LEFT);
+		pumpUntil(()->screen().contains("conn/"));
+		pumpIdle();
+		// into the connection and back up out of it
+		ch('g');
+		b.key(Key.ctrl('u'));
+		type("conn");
+		key(Key.Code.ENTER);
+		pumpUntil(()->screen().contains("inmem.txt"));
+		pumpIdle();
+		key(Key.Code.LEFT);
+		pumpUntil(()->screen().contains("conn/") && screen().contains("src/"));
+	}
+
+	/** In fsh, x (back to the local disk) and Local in the connect list show the shell's tree: its connections are there. */
+	@Test
+	public void localInTheShellListsItsConnections() throws Exception {
+		startInShell(shellWithConnection());
+		ch('x');
+		pumpIdle();
+		key(Key.Code.LEFT);
+		pumpUntil(()->screen().contains("conn"));
+		pumpIdle();
+
+		startInShell(shellWithConnection2());
+		connectTo("Local");
+		assertScreen("Folder");
+		b.key(Key.ctrl('u'));
+		type(tmpPath());
+		key(Key.Code.ENTER);
+		pumpUntil(()->screen().contains("conn2"));
+	}
+
+	private us.bringardner.fsh.Console shellWithConnection2() throws Exception {
+		us.bringardner.fsh.Console console = new us.bringardner.fsh.Console();
+		us.bringardner.parley.files.memory.MemoryFileSourceFactory m = new us.bringardner.parley.files.memory.MemoryFileSourceFactory();
+		m.connect(new java.util.Properties());
+		assertTrue(console.mount(m.listRoots()[0], tmpPath()+"/conn2"));
+		return console;
+	}
 }

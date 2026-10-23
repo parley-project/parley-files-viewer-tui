@@ -175,6 +175,7 @@ public class TuiBrowser {
 		for(int idx=0; idx < panes.length; idx++) {
 			panes[idx] = new FilePane(worker, gui.getGUIThread(), this::setStatus);
 			panes[idx].setOnOpenFile(this::view);
+			panes[idx].setFolders(this::inHost);
 		}
 
 		main = new BasicWindow() {
@@ -599,7 +600,8 @@ public class TuiBrowser {
 		}
 		path = path.trim();
 		try {
-			FileSource dir = path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*")
+			FileSource dir = connections != null && path.startsWith("/") ? connections.file(path)
+					: path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*")
 					? suggested.getFileSourceFactory().createFileSource(path)
 					: pane().getDirectory().getChild(path);
 			if( !dir.isDirectory()) {
@@ -689,13 +691,13 @@ public class TuiBrowser {
 	}
 
 	private void gotoPath() {
-		String path = prompt("Go to", "Path on "+pane().getFactory().getTypeId(),
+		String path = prompt("Go to", "Path on "+Connections.label(pane().getFactory().getTypeId()),
 				pane().getDirectory().getAbsolutePath());
 		if( path == null || path.trim().isEmpty()) {
 			return;
 		}
 		try {
-			FileSource target = pane().getFactory().createFileSource(path.trim());
+			FileSource target = resolve(path.trim());
 			if( target.isDirectory()) {
 				pane().go(target);
 			} else if( target.exists()) {
@@ -705,6 +707,30 @@ public class TuiBrowser {
 			}
 		} catch (IOException e) {
 			error("Can't go to "+path, e);
+		}
+	}
+
+	/** a path typed in g: in fsh, in the shell's file tree (its connections included); standalone, on the pane's file system */
+	private FileSource resolve(String path) throws IOException {
+		if( connections == null ) {
+			return pane().getFactory().createFileSource(path);
+		}
+		if( !path.startsWith("/")) {
+			String dir = pane().getDirectory().getAbsolutePath();
+			path = (dir.endsWith("/") ? dir : dir+"/")+path;
+		}
+		return connections.file(path);
+	}
+
+	/** A folder as the panes show it: in fsh, a local folder is the same folder in the shell's file tree, so its connections are listed in it and above it */
+	private FileSource inHost(FileSource local) {
+		if( connections == null || !FileOps.isLocal(local)) {
+			return local;
+		}
+		try {
+			return connections.file(local.getAbsolutePath().replace('\\', '/'));
+		} catch (IOException e) {
+			return local;
 		}
 	}
 

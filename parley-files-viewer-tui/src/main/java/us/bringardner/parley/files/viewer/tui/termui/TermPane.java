@@ -82,6 +82,7 @@ final class TermPane {
 	private int visibleRows = 20;
 	private long loadSerial;
 	private FileSource lastLocal;
+	private java.util.function.UnaryOperator<FileSource> folders = java.util.function.UnaryOperator.identity();
 	/** the pane with the keyboard: its header is highlighted and it reports to the status line */
 	private boolean active;
 
@@ -132,8 +133,17 @@ final class TermPane {
 		go(dir, null);
 	}
 
+	/**
+	 * How a folder the pane goes to is shown: in fsh, as the shell's file tree has it, so its
+	 * connections are listed (a local folder with none under it is a plain local folder in fsh,
+	 * and so is its parent); standalone, as it is.
+	 */
+	void setFolders(java.util.function.UnaryOperator<FileSource> folders) {
+		this.folders = folders;
+	}
+
 	void go(FileSource dir, String select) {
-		history.go(dir);
+		history.go(folders.apply(dir));
 		marked.clear();
 		load(select, false);
 	}
