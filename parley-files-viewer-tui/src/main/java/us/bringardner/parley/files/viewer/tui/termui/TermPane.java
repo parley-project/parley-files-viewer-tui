@@ -64,7 +64,7 @@ final class TermPane {
 	}
 
 	private static final String PARENT = "../";
-	private static final int SIZE_WIDTH = 7;
+	private static final int SIZE_WIDTH = 8;
 	private static final int DATE_WIDTH = 16;
 
 	private final Executor worker;
@@ -72,6 +72,10 @@ final class TermPane {
 	private final Consumer<String> status;
 	private final NavigationHistory history = new NavigationHistory();
 	private List<FileEntry> all = new ArrayList<>();
+	/** the connections and symbolic links among them, by name (EntryMarks) */
+	private java.util.Map<String, us.bringardner.parley.files.viewer.tui.EntryMarks.Mark> marks = java.util.Collections.emptyMap();
+	/** the browser's tree's connections, by path, for the marks */
+	private java.util.function.Supplier<java.util.Map<String, FileSource>> connections = java.util.Collections::emptyMap;
 	private List<FileEntry> shown = new ArrayList<>();
 	private final Set<String> marked = new LinkedHashSet<>();
 	private int top;
@@ -141,6 +145,10 @@ final class TermPane {
 	 * connections are listed (a local folder with none under it is a plain local folder, and so is
 	 * its parent).
 	 */
+	void setConnections(java.util.function.Supplier<java.util.Map<String, FileSource>> connections) {
+		this.connections = connections;
+	}
+
 	void setFolders(java.util.function.UnaryOperator<FileSource> folders) {
 		this.folders = folders;
 	}
@@ -206,6 +214,7 @@ final class TermPane {
 		}
 		worker.execute(()->{
 			List<FileEntry> entries = new ArrayList<>();
+			java.util.Map<String, us.bringardner.parley.files.viewer.tui.EntryMarks.Mark> kidMarks = java.util.Collections.emptyMap();
 			boolean parent = true;
 			IOException failed = null;
 			try {
@@ -214,6 +223,7 @@ final class TermPane {
 					for(FileSource kid : kids) {
 						entries.add(FileEntry.of(kid));
 					}
+					kidMarks = us.bringardner.parley.files.viewer.tui.EntryMarks.of(kids, connections.get());
 				}
 				parent = dir.getParentFile() != null;
 			} catch (IOException | RuntimeException e) {
@@ -221,11 +231,13 @@ final class TermPane {
 			}
 			boolean gotParent = parent;
 			IOException error = failed;
+			java.util.Map<String, us.bringardner.parley.files.viewer.tui.EntryMarks.Mark> gotMarks = kidMarks;
 			ui.execute(()->{
 				if( serial != loadSerial ) {
 					return; // a newer load has started
 				}
 				all = entries;
+				marks = gotMarks;
 				hasParent = gotParent;
 				refill(select);
 				if( error != null ) {
@@ -391,11 +403,23 @@ final class TermPane {
 		if( e == null ) {
 			return shown.size()+" item(s)"+(marked.isEmpty() ? "" : ", "+marked.size()+" marked");
 		}
+		us.bringardner.parley.files.viewer.tui.EntryMarks.Mark m = marks.get(e.getName());
+		if( m != null ) {
+			// what a connection or a link points at, as ls -l shows it
+			return e.getName()+" -> "+m.target
+					+"  "+FileOps.formatDate(e.getLastModified())+(marked.isEmpty() ? "" : "   ("+marked.size()+" marked)");
+		}
 		return e.getName()+"  "+(e.isDirectory() ? "directory" : FileOps.formatSize(e.getLength()))
 				+"  "+FileOps.formatDate(e.getLastModified())+(marked.isEmpty() ? "" : "   ("+marked.size()+" marked)");
 	}
 
 	// ---------------------------------------------------------------- drawing
+
+	/** &lt;sftp&gt; for a connection, &lt;LINK&gt; for a symbolic link, &lt;DIR&gt; for a folder, else the size */
+	private String sizeColumn(FileEntry e) {
+		us.bringardner.parley.files.viewer.tui.EntryMarks.Mark m = marks.get(e.getName());
+		return m != null ? m.mark : e.isDirectory() ? "<DIR>" : FileOps.formatSize(e.getLength());
+	}
 
 	void render(Screen screen, Rect area, String tag) {
 		renderHeader(screen, area.row(0), tag);
@@ -422,7 +446,7 @@ final class TermPane {
 		}
 		for(FileEntry e : shown) {
 			lines.add(pad(fitName(e.getName()+(e.isDirectory() ? "/" : ""), nameWidth), nameWidth)+" "
-					+pad(e.isDirectory() ? "<DIR>" : FileOps.formatSize(e.getLength()), SIZE_WIDTH)+" "+FileOps.formatDate(e.getLastModified()));
+					+pad(sizeColumn(e), SIZE_WIDTH)+" "+FileOps.formatDate(e.getLastModified()));
 			styles.add(marked.contains(e.getName()) ? Theme.MARKED : e.isDirectory() ? Theme.DIRECTORY : Theme.NORMAL);
 		}
 		if( lines.isEmpty()) {

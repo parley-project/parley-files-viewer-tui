@@ -780,6 +780,42 @@ public class TermBrowserTest {
 		assertFalse(mem.isConnected());
 	}
 
+	/**
+	 * A local symbolic link shows <LINK> and a connection its file system (<memory>) where a folder
+	 * shows <DIR>; on either, the status line says what it points at, as ls -l does.
+	 */
+	@Test
+	public void linksAndConnectionsAreMarked() throws Exception {
+		java.nio.file.Files.createSymbolicLink(tmp.resolve("src").resolve("latest"), java.nio.file.Path.of("sub"));
+		java.nio.file.Files.createSymbolicLink(tmp.resolve("src").resolve("note"), java.nio.file.Path.of("a.txt"));
+		b.key(Key.ctrl('r'));
+		pumpIdle();
+		assertTrue(screen().matches("(?s).*latest/ +<LINK> .*"), screen());
+		assertTrue(screen().matches("(?s).*note +<LINK> .*"), screen());
+		assertTrue(screen().matches("(?s).*sub/ +<DIR> .*"), screen());
+		key(Key.Code.HOME);
+		down(1); // latest/ (folders first, by name)
+		assertTrue(b.getStatus().startsWith("latest -> sub"), b.getStatus());
+
+		connectTo("memory");
+		key(Key.Code.ENTER);
+		pumpUntil(()->lines().get(0).startsWith("> [memory] /memory"));
+		pumpIdle();
+		key(Key.Code.LEFT); // up to /, where it's listed
+		pumpUntil(()->screen().contains("memory/"));
+		pumpIdle();
+		assertTrue(screen().matches("(?s).*memory/ +<memory> .*"), screen());
+		assertEquals("memory", currentStatusName());
+		assertTrue(b.getStatus().startsWith("memory -> memory"), b.getStatus());
+	}
+
+	/** the name of the entry the status line describes */
+	private String currentStatusName() {
+		String st = b.getStatus();
+		int sp = st.indexOf(' ');
+		return sp < 0 ? st : st.substring(0, sp);
+	}
+
 	/** A browser in a real fsh shell, as fsh's browse runs it: the host's connections are the shell's. */
 	private void startInShell(us.bringardner.fsh.Console console) {
 		us.bringardner.parley.files.viewer.tui.HostConnections shell = new us.bringardner.parley.files.viewer.tui.HostConnections() {

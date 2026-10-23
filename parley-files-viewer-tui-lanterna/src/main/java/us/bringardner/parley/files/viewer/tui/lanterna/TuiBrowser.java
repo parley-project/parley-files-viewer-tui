@@ -193,6 +193,7 @@ public class TuiBrowser {
 			panes[idx] = new FilePane(worker, gui.getGUIThread(), this::setStatus);
 			panes[idx].setOnOpenFile(this::view);
 			panes[idx].setFolders(this::inHost);
+			panes[idx].setConnections(()->connections.list());
 		}
 
 		main = new BasicWindow() {
