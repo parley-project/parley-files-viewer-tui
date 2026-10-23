@@ -165,6 +165,7 @@ public class TermBrowser implements Tui.App {
 		}
 		for(TermPane p : panes) {
 			p.setFolders(this::inHost);
+			p.setConnections(connections::list);
 		}
 		panes[0].go(left);
 		panes[1].go(right);

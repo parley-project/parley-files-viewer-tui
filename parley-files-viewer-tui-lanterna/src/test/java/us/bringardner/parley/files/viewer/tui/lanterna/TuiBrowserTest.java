@@ -213,6 +213,16 @@ public class TuiBrowserTest {
 		assertTrue(!left.getChild("readme.txt").exists());
 	}
 
+	/** A symbolic link shows <LINK> where a folder shows <DIR>, and the status line says what it points at. */
+	@Test
+	public void linksAreMarked() throws Exception {
+		java.nio.file.Files.createSymbolicLink(tmp.resolve("left").resolve("alias"), java.nio.file.Path.of("folder"));
+		key(new KeyStroke('r', true, false)); // refresh
+		waitFor(()->text().matches("(?s).*alias/ +.*<LINK>.*"), "the link marked");
+		key(new KeyStroke(KeyType.ArrowDown)); // alias/ (folders first, by name)
+		waitFor(()->browser.getStatus().startsWith("alias -> folder"), "what it points at");
+	}
+
 	@Test
 	public void viewsAFile() throws Exception {
 		key(new KeyStroke(KeyType.ArrowDown));

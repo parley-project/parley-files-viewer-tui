@@ -76,6 +76,10 @@ path means one place whichever pane you're in, `g` and copy destinations take an
 tree, and going up from a connection leads back to the folder it's in. Connections stay until
 `D` disconnects one or you quit, which closes them all.
 
+In the Size column a folder shows `<DIR>`, a connection its file system (`<sftp>`, `<memory>`)
+and a local symbolic link `<LINK>`; with the cursor on one of those, the status line says what it
+points at (`mem -> memory`, `latest -> releases/2.0.0`), as fsh's `ls -l` does.
+
 Each pane can be on its own file system; copy and move work between any two of them. In the
 one-pane layout the second location is still there: Tab switches between them, and copy and
 move ask for the destination (suggesting the other location).

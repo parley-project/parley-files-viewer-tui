@@ -87,6 +87,14 @@ public class FilePane extends Panel {
 	private List<FileEntry> all = new ArrayList<>();
 	private List<FileEntry> shown = new ArrayList<>();
 	private final Set<String> marked = new LinkedHashSet<>();
+	/** the connections and symbolic links shown, by name (EntryMarks) */
+	private java.util.Map<String, us.bringardner.parley.files.viewer.tui.EntryMarks.Mark> marks = java.util.Collections.emptyMap();
+	/** the browser's tree's connections, by path, for the marks */
+	private java.util.function.Supplier<java.util.Map<String, FileSource>> connections = java.util.Collections::emptyMap;
+
+	public void setConnections(java.util.function.Supplier<java.util.Map<String, FileSource>> connections) {
+		this.connections = connections;
+	}
 	/** where a Shift-arrow selection started (a row), or -1; and what was marked before it */
 	private int anchor = -1;
 	private final Set<String> markedBefore = new LinkedHashSet<>();
@@ -407,10 +415,13 @@ public class FilePane extends Panel {
 		}
 		worker.execute(()->{
 			List<FileEntry> entries;
+			java.util.Map<String, us.bringardner.parley.files.viewer.tui.EntryMarks.Mark> kidMarks = java.util.Collections.emptyMap();
 			boolean parent;
 			IOException error = null;
 			try {
-				entries = list(dir);
+				FileSource[] kids = dir.listFiles();
+				entries = list(kids);
+				kidMarks = us.bringardner.parley.files.viewer.tui.EntryMarks.of(kids, connections.get());
 				parent = dir.getParentFile() != null;
 			} catch (IOException | RuntimeException e) {
 				entries = new ArrayList<>();
@@ -418,6 +429,7 @@ public class FilePane extends Panel {
 				error = e instanceof IOException ? (IOException) e : new IOException(e);
 			}
 			List<FileEntry> got = entries;
+			java.util.Map<String, us.bringardner.parley.files.viewer.tui.EntryMarks.Mark> gotMarks = kidMarks;
 			boolean gotParent = parent;
 			IOException failed = error;
 			guiThread.invokeLater(()->{
@@ -425,6 +437,7 @@ public class FilePane extends Panel {
 					return; // a newer load has started
 				}
 				all = got;
+				marks = gotMarks;
 				hasParent = gotParent;
 				refill(select);
 				if( failed != null ) {
@@ -442,7 +455,10 @@ public class FilePane extends Panel {
 	 * (fsh's, the browser's own) lists its connections only through it.
 	 */
 	static List<FileEntry> list(FileSource dir) throws IOException {
-		FileSource[] kids = dir.listFiles();
+		return list(dir.listFiles());
+	}
+
+	static List<FileEntry> list(FileSource[] kids) {
 		List<FileEntry> ret = new ArrayList<>(kids == null ? 0 : kids.length);
 		if( kids != null ) {
 			for(FileSource kid : kids) {
@@ -451,6 +467,12 @@ public class FilePane extends Panel {
 		}
 		ret.sort(DirectoryListing.BY_NAME);
 		return ret;
+	}
+
+	/** &lt;sftp&gt; for a connection, &lt;LINK&gt; for a symbolic link, &lt;DIR&gt; for a folder, else the size */
+	private String sizeColumn(FileEntry e) {
+		us.bringardner.parley.files.viewer.tui.EntryMarks.Mark m = marks.get(e.getName());
+		return m != null ? m.mark : e.isDirectory() ? "<DIR>" : FileOps.formatSize(e.getLength());
 	}
 
 	private void refill(String select) {
@@ -464,7 +486,7 @@ public class FilePane extends Panel {
 		for(FileEntry e : shown) {
 			String name = e.getName()+(e.isDirectory() ? "/" : "");
 			model.addRow(fitName(name),
-					e.isDirectory() ? "<DIR>" : FileOps.formatSize(e.getLength()),
+					sizeColumn(e),
 					FileOps.formatDate(e.getLastModified()));
 		}
 		if( model.getRowCount() == 0 ) {
@@ -540,6 +562,12 @@ public class FilePane extends Panel {
 		FileEntry e = getCurrent();
 		if( e == null ) {
 			return shown.size()+" item(s)"+(marked.isEmpty() ? "" : ", "+marked.size()+" marked");
+		}
+		us.bringardner.parley.files.viewer.tui.EntryMarks.Mark m = marks.get(e.getName());
+		if( m != null ) {
+			// what a connection or a link points at, as ls -l shows it
+			return e.getName()+" -> "+m.target+"  "+FileOps.formatDate(e.getLastModified())
+					+(marked.isEmpty() ? "" : "   ("+marked.size()+" marked)");
 		}
 		String what = e.isDirectory() ? "directory" : FileOps.formatSize(e.getLength());
 		return e.getName()+"  "+what+"  "+FileOps.formatDate(e.getLastModified())
