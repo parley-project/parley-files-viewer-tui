@@ -654,6 +654,12 @@ public class TermBrowser implements Tui.App {
 
 	// ---------------------------------------------------------------- connections
 
+	/**
+	 * The file systems this browser connected to itself (o): the only ones it may disconnect.
+	 * Others are its caller's (fsh's mounts), so leaving one just leaves it.
+	 */
+	private final java.util.Set<FileSourceFactory> opened = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
 	private void connect() {
 		List<String> types = Connections.types();
 		List<String> labels = new ArrayList<>();
@@ -692,6 +698,7 @@ public class TermBrowser implements Tui.App {
 							FileSource dir = start;
 							String message = note;
 							ui.execute(()->{
+								opened.add(factory);
 								switchTo(target, dir);
 								if( message != null ) {
 									dialogs.open(new Dialog.Message("Start in", message));
@@ -767,13 +774,14 @@ public class TermBrowser implements Tui.App {
 	}
 
 	/**
-	 * Go on if the pane may leave its file system: yes for the local disk, or one the other pane
-	 * uses too; otherwise leaving closes the connection, so ask.
+	 * Go on if the pane may leave its file system: yes for one this browser didn't connect to (the
+	 * local disk, the caller's mounts), or one the other pane uses too; otherwise leaving closes
+	 * the connection, so ask.
 	 */
 	private void mayLeave(TermPane target, Runnable go) {
 		FileSourceFactory current = target.getFactory();
 		TermPane otherPane = target == panes[0] ? panes[1] : panes[0];
-		if( current == null || FileProxyFactory.FACTORY_ID.equals(current.getTypeId()) || otherPane.getFactory() == current ) {
+		if( current == null || !opened.contains(current) || otherPane.getFactory() == current ) {
 			go.run();
 			return;
 		}
@@ -781,13 +789,12 @@ public class TermBrowser implements Tui.App {
 				+"? No other pane uses it.", go, null));
 	}
 
-	/** Show dir in pane, and disconnect the file system the pane was on if it's now unused. */
+	/** Show dir in pane, and disconnect the file system the pane was on if this browser opened it and it's now unused. */
 	private void switchTo(TermPane target, FileSource dir) {
 		FileSourceFactory old = target.getFactory();
 		target.go(dir);
 		TermPane otherPane = target == panes[0] ? panes[1] : panes[0];
-		if( old != null && old != dir.getFileSourceFactory() && old != otherPane.getFactory()
-				&& !FileProxyFactory.FACTORY_ID.equals(old.getTypeId())) {
+		if( old != null && old != dir.getFileSourceFactory() && old != otherPane.getFactory() && opened.remove(old)) {
 			worker.execute(()->{
 				try {
 					old.disConnect();

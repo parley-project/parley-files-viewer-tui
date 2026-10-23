@@ -768,6 +768,7 @@ public class TuiBrowser {
 				FileSource dir = start;
 				String message = note;
 				gui.getGUIThread().invokeLater(()->{
+					opened.add(factory);
 					switchTo(target, dir);
 					if( message != null ) {
 						// a dialog, not the status line: the pane's listing replaces that as it loads
@@ -828,12 +829,19 @@ public class TuiBrowser {
 	}
 
 	/**
-	 * Whether the pane may leave the file system it's on: yes if that is the local disk, or the
-	 * other pane uses it too; otherwise leaving closes the connection, so ask.
+	 * The file systems this browser connected to itself (o): the only ones it may disconnect.
+	 * Others are its caller's (fsh's mounts), so leaving one just leaves it.
+	 */
+	private final java.util.Set<FileSourceFactory> opened = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+	/**
+	 * Whether the pane may leave the file system it's on: yes if this browser didn't connect to it
+	 * (the local disk, the caller's mounts), or the other pane uses it too; otherwise leaving closes
+	 * the connection, so ask.
 	 */
 	private boolean mayLeave(FilePane target) {
 		FileSourceFactory current = target.getFactory();
-		if( current == null || FileProxyFactory.FACTORY_ID.equals(current.getTypeId())) {
+		if( current == null || !opened.contains(current)) {
 			return true;
 		}
 		FilePane otherPane = target == panes[0] ? panes[1] : panes[0];
@@ -893,13 +901,12 @@ public class TuiBrowser {
 		return answer[0];
 	}
 
-	/** Show dir in pane, and disconnect the file system the pane was on if it's now unused. */
+	/** Show dir in pane, and disconnect the file system the pane was on if this browser opened it and it's now unused. */
 	private void switchTo(FilePane target, FileSource dir) {
 		FileSourceFactory old = target.getFactory();
 		target.go(dir);
 		FilePane otherPane = target == panes[0] ? panes[1] : panes[0];
-		if( old != null && old != dir.getFileSourceFactory() && old != otherPane.getFactory()
-				&& !FileProxyFactory.FACTORY_ID.equals(old.getTypeId())) {
+		if( old != null && old != dir.getFileSourceFactory() && old != otherPane.getFactory() && opened.remove(old)) {
 			worker.execute(()->{
 				try {
 					old.disConnect();
