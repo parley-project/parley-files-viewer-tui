@@ -96,7 +96,7 @@ public class TuiBrowser {
 
 	static final String HELP = String.join("\n",
 			"Moving around",
-			"  Up/Down PgUp/PgDn Home/End   move the cursor",
+			"  Up/Down PgUp/PgDn Home/End   move the cursor (with Shift: mark from where you start to here)",
 			"  Enter                        open a directory, view a file",
 			"  Backspace                    parent directory",
 			"  [ / ]                        back / forward in this pane's history",
@@ -364,7 +364,13 @@ public class TuiBrowser {
 			case PageDown:
 			case Home:
 			case End:
+				if( key.isShiftDown()) {
+					// mark from where the Shift selection started to here
+					pane().extend(key);
+					return true;
+				}
 				// let the table move, then say what's under the cursor
+				pane().endExtend();
 				pane().getTable().handleKeyStroke(key);
 				setStatus(pane().describeCurrent());
 				return true;

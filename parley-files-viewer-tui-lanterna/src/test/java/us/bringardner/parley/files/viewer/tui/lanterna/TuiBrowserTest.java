@@ -164,6 +164,24 @@ public class TuiBrowserTest {
 		waitFor(()->text().split("readme.txt", -1).length == 3, "readme.txt in both panes");
 	}
 
+	/** Shift and an arrow marks from where it started to the cursor; copy acts on the marked ones. */
+	@Test
+	public void shiftArrowsMarkARangeThatCopyActsOn() throws Exception {
+		key(new KeyStroke(KeyType.ArrowDown)); // folder/
+		key(new KeyStroke(KeyType.ArrowDown, false, false, true)); // and readme.txt
+		waitFor(()->"2 marked".equals(browser.getStatus()), "two marked");
+		key(new KeyStroke(KeyType.ArrowUp, false, false, true)); // back: only folder/
+		waitFor(()->"1 marked".equals(browser.getStatus()), "one marked");
+		key(new KeyStroke(KeyType.ArrowDown, false, false, true));
+		waitFor(()->"2 marked".equals(browser.getStatus()), "two marked again");
+		type('c');
+		waitFor(()->text().contains("Copy 2 items"), "the confirm dialog");
+		key(new KeyStroke(KeyType.Enter)); // Yes
+		waitFor(()->browser.getStatus().startsWith("Copied"), "the copy");
+		assertTrue(right.getChild("readme.txt").exists());
+		assertTrue(right.getChild("folder").isDirectory());
+	}
+
 	@Test
 	public void viewsAFile() throws Exception {
 		key(new KeyStroke(KeyType.ArrowDown));

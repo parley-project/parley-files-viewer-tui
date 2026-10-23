@@ -19,6 +19,9 @@
 - In fsh, the panes show the shell's file tree wherever they go, so its connections are listed:
   going up from a local folder (Left, Backspace), `g`, `x`, Local in the connect list and a copy or
   move destination such as `/mem/x` all reached the local disk without them. (Both browsers.)
+- **Shift and the arrows mark a range** (also Shift with Page Up / Down, Home and End): from where
+  you start to the cursor, as in a GUI list, so copy, move and delete act on it. Going back unmarks
+  what's passed; marks made before stay. (Both browsers.)
 - `g` asks for a "Path" in fsh (one tree, whatever the pane is on); on its own it names the pane's
   file system as its header does (Local, not fileproxy). In its box, and in
   every text box, Ctrl-U clears it and Ctrl-W goes back a folder; the box says so.
