@@ -75,7 +75,7 @@ public class TermBrowser implements Tui.App {
 	}
 
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
-			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden"};
+			"d delete", "n mkdir", "r rename", "s search", "o connect", "D disconnect", "t shell", "g goto", "h hidden"};
 
 	static final String HELP = String.join("\n",
 			"Moving around",
@@ -889,6 +889,10 @@ public class TermBrowser implements Tui.App {
 					hc.disconnect(path);
 					ui.execute(()->{
 						leave(p->p.getDirectory().getAbsolutePath().equals(path) || p.getDirectory().getAbsolutePath().startsWith(path+"/"));
+						// a pane showing the folder it was in lists it no longer
+						for(int i=0; i < panes.length; i++) {
+							panes[i].refreshQuietly();
+						}
 						setStatus("Disconnected "+path);
 					});
 				} catch (IOException e2) {

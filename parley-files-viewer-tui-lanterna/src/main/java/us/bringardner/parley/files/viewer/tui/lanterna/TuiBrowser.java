@@ -75,7 +75,7 @@ public class TuiBrowser {
 
 	/** The key bar's entries, most useful first; what doesn't fit the width is left off (? lists them all). */
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
-			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden"};
+			"d delete", "n mkdir", "r rename", "s search", "o connect", "D disconnect", "t shell", "g goto", "h hidden"};
 
 	/** The key bar for a screen this wide: as many entries as fit, in their usual order, help and quit last. */
 	static String keyBar(int width) {
@@ -947,6 +947,10 @@ public class TuiBrowser {
 					gui.getGUIThread().invokeLater(()->{
 						leave(p->p.getDirectory() != null && (p.getDirectory().getAbsolutePath().equals(path)
 								|| p.getDirectory().getAbsolutePath().startsWith(path+"/")));
+						// a pane showing the folder it was in lists it no longer
+						for(int i=0; i < panes.length; i++) {
+							panes[i].refreshQuietly();
+						}
 						setStatus("Disconnected "+path);
 					});
 				} catch (IOException e2) {

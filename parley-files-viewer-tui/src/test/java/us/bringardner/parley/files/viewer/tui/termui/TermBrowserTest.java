@@ -809,6 +809,26 @@ public class TermBrowserTest {
 		assertTrue(b.getStatus().startsWith("memory -> memory"), b.getStatus());
 	}
 
+	/** After D disconnects one, a pane showing the folder it was in no longer lists it; the key bar shows D. */
+	@Test
+	public void aDisconnectedOneLeavesTheListing() throws Exception {
+		assertTrue(TermBrowser.keyBar(500).contains("o connect  D disconnect"), TermBrowser.keyBar(500));
+		connectTo("memory");
+		key(Key.Code.ENTER);
+		pumpUntil(()->lines().get(0).startsWith("> [memory] /memory"));
+		pumpIdle();
+		key(Key.Code.LEFT);
+		pumpUntil(()->screen().contains("memory/"));
+		pumpIdle();
+		ch('D');
+		assertScreen("Disconnect", "/memory  (");
+		key(Key.Code.ENTER);
+		assertScreen("Disconnect /memory");
+		ch('y');
+		pumpUntil(()->b.getStatus().startsWith("Disconnected /memory"));
+		pumpUntil(()->!screen().contains("memory/"));
+	}
+
 	/** the name of the entry the status line describes */
 	private String currentStatusName() {
 		String st = b.getStatus();
