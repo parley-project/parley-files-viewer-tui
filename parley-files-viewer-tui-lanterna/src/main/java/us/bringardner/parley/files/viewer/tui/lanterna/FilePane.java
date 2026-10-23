@@ -87,6 +87,9 @@ public class FilePane extends Panel {
 	private List<FileEntry> all = new ArrayList<>();
 	private List<FileEntry> shown = new ArrayList<>();
 	private final Set<String> marked = new LinkedHashSet<>();
+	/** where a Shift-arrow selection started (a row), or -1; and what was marked before it */
+	private int anchor = -1;
+	private final Set<String> markedBefore = new LinkedHashSet<>();
 	private boolean hasParent;
 	private boolean showHidden;
 	private boolean active;
@@ -302,8 +305,39 @@ public class FilePane extends Panel {
 		return ret;
 	}
 
+	/**
+	 * Shift and an arrow (or Page Up / Down, Home, End): let the table move, marking every entry
+	 * from where the Shift selection started to here, as a GUI's list does; going back unmarks
+	 * what's passed. Marks made before it stay.
+	 */
+	public void extend(com.googlecode.lanterna.input.KeyStroke key) {
+		if( anchor < 0 ) {
+			anchor = table.getSelectedRow();
+			markedBefore.clear();
+			markedBefore.addAll(marked);
+		}
+		table.handleKeyStroke(new com.googlecode.lanterna.input.KeyStroke(key.getKeyType()));
+		int row = table.getSelectedRow();
+		marked.clear();
+		marked.addAll(markedBefore);
+		for(int r = Math.min(anchor, row); r <= Math.max(anchor, row); r++) {
+			FileEntry e = entryAt(r);
+			if( e != null ) {
+				marked.add(e.getName());
+			}
+		}
+		table.invalidate();
+		status.accept(marked.size()+" marked");
+	}
+
+	/** A move without Shift: the next Shift-arrow starts a new selection. */
+	public void endExtend() {
+		anchor = -1;
+	}
+
 	/** Mark or unmark the entry under the cursor and move down. */
 	public void toggleMark() {
+		anchor = -1;
 		FileEntry e = getCurrent();
 		if( e != null ) {
 			if( !marked.remove(e.getName())) {
@@ -320,6 +354,7 @@ public class FilePane extends Panel {
 
 	/** Mark everything, or clear the marks if everything is marked. */
 	public void toggleMarkAll() {
+		anchor = -1;
 		if( marked.size() == shown.size()) {
 			marked.clear();
 		} else {
@@ -332,6 +367,7 @@ public class FilePane extends Panel {
 	}
 
 	public void clearMarks() {
+		anchor = -1;
 		marked.clear();
 		table.invalidate();
 	}
@@ -351,6 +387,7 @@ public class FilePane extends Panel {
 	}
 
 	private void load(String select, boolean quiet) {
+		anchor = -1;
 		FileSource dir = getDirectory();
 		if( dir == null ) {
 			return;

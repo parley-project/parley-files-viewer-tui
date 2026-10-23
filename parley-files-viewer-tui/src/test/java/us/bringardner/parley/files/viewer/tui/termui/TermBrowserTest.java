@@ -299,6 +299,59 @@ public class TermBrowserTest {
 		assertFalse(dest.getChild("b.txt").exists());
 	}
 
+	private void shift(Key.Code code) {
+		b.key(Key.shift(code));
+	}
+
+	/**
+	 * Shift and an arrow marks from where it started to the cursor (going back unmarks what's
+	 * passed); a move without Shift ends it, and the next one adds to what's marked. Copy acts on it.
+	 */
+	@Test
+	public void shiftArrowsMarkARangeThatCopyActsOn() throws IOException {
+		down(1); // sub
+		shift(Key.Code.DOWN);
+		shift(Key.Code.DOWN);
+		assertEquals("3 marked", b.getStatus());
+		shift(Key.Code.UP);
+		shift(Key.Code.UP);
+		assertEquals("1 marked", b.getStatus()); // sub, where it started
+		shift(Key.Code.UP); // onto ../, which is never marked
+		assertEquals("1 marked", b.getStatus());
+		pane0ClearMarks();
+		down(2); // a.txt
+		shift(Key.Code.DOWN);
+		assertEquals("2 marked", b.getStatus()); // a.txt and b.txt
+		key(Key.Code.UP);
+		key(Key.Code.UP); // sub, without Shift: the marks stay
+		shift(Key.Code.UP); // a new selection: ../ and sub, added to the two
+		key(Key.Code.DOWN);
+		shift(Key.Code.END);
+		assertTrue(screen().contains("3 marked"), screen());
+		pane0ClearMarks();
+		down(2);
+		shift(Key.Code.DOWN);
+		ch('c');
+		assertScreen("Copy 2 items to");
+		ch('y');
+		pumpUntil(()->screen().contains("Already exists"));
+		down(1); // Overwrite all
+		key(Key.Code.ENTER);
+		pumpUntil(()->b.getStatus().startsWith("Copied"));
+		assertEquals("alpha\nsecond line\n", read(dest.getChild("a.txt")));
+		assertEquals("bravo\n", read(dest.getChild("b.txt")));
+	}
+
+	/** a (twice: all, then none) clears the marks and puts the cursor back on ../ */
+	private void pane0ClearMarks() {
+		ch('a');
+		if( !"0 marked".equals(b.getStatus())) {
+			ch('a');
+		}
+		assertEquals("0 marked", b.getStatus());
+		key(Key.Code.HOME);
+	}
+
 	@Test
 	public void movesMarkedFiles() throws IOException {
 		down(2);

@@ -83,6 +83,9 @@ final class TermPane {
 	private long loadSerial;
 	private FileSource lastLocal;
 	private java.util.function.UnaryOperator<FileSource> folders = java.util.function.UnaryOperator.identity();
+	/** where a Shift-arrow selection started (a row), or -1; and what was marked before it */
+	private int anchor = -1;
+	private final Set<String> markedBefore = new LinkedHashSet<>();
 	/** the pane with the keyboard: its header is highlighted and it reports to the status line */
 	private boolean active;
 
@@ -189,6 +192,7 @@ final class TermPane {
 	}
 
 	private void load(String select, boolean quiet) {
+		anchor = -1;
 		FileSource dir = getDirectory();
 		if( dir == null ) {
 			return;
@@ -267,8 +271,44 @@ final class TermPane {
 	}
 
 	void moveTo(int row) {
+		anchor = -1;
 		selected = Math.max(0, Math.min(rowCount()-1, row));
 		status.accept(describeCurrent());
+	}
+
+	/**
+	 * Shift and an arrow (or Page Up / Down, Home, End): move, marking every entry from where the
+	 * Shift selection started to here, as a GUI's list does; going back unmarks what's passed.
+	 * Marks made before it stay. A move without Shift ends it.
+	 */
+	void extendTo(int row) {
+		if( anchor < 0 ) {
+			anchor = selected;
+			markedBefore.clear();
+			markedBefore.addAll(marked);
+		}
+		selected = Math.max(0, Math.min(rowCount()-1, row));
+		marked.clear();
+		marked.addAll(markedBefore);
+		int skip = hasParent ? 1 : 0;
+		for(int r = Math.min(anchor, selected); r <= Math.max(anchor, selected); r++) {
+			if( r >= skip && r-skip < shown.size()) {
+				marked.add(shown.get(r-skip).getName());
+			}
+		}
+		status.accept(marked.size()+" marked");
+	}
+
+	void extendBy(int rows) {
+		extendTo(selected+rows);
+	}
+
+	int pageRows() {
+		return visibleRows;
+	}
+
+	int rows() {
+		return rowCount();
 	}
 
 	void moveBy(int rows) {
@@ -296,6 +336,7 @@ final class TermPane {
 	}
 
 	void toggleMark() {
+		anchor = -1;
 		FileEntry e = current();
 		if( e != null && !marked.remove(e.getName())) {
 			marked.add(e.getName());
@@ -305,6 +346,7 @@ final class TermPane {
 	}
 
 	void toggleMarkAll() {
+		anchor = -1;
 		if( marked.size() == shown.size()) {
 			marked.clear();
 		} else {
@@ -316,6 +358,7 @@ final class TermPane {
 	}
 
 	void clearMarks() {
+		anchor = -1;
 		marked.clear();
 	}
 

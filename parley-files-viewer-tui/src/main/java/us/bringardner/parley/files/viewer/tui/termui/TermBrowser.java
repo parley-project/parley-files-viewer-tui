@@ -79,7 +79,7 @@ public class TermBrowser implements Tui.App {
 
 	static final String HELP = String.join("\n",
 			"Moving around",
-			"  Up/Down PgUp/PgDn Home/End   move the cursor",
+			"  Up/Down PgUp/PgDn Home/End   move the cursor (with Shift: mark from where you start to here)",
 			"  Enter                        open a directory, view a file",
 			"  Backspace                    parent directory",
 			"  [ / ]                        back / forward in this pane's history",
@@ -279,12 +279,13 @@ public class TermBrowser implements Tui.App {
 			case F6: copy(true); return true;
 			case F7: mkdir(); return true;
 			case F10: quit(); return true;
-			case UP: pane().moveBy(-1); return true;
-			case DOWN: pane().moveBy(1); return true;
-			case PAGE_UP: pane().pageUp(); return true;
-			case PAGE_DOWN: pane().pageDown(); return true;
-			case HOME: pane().moveTo(0); return true;
-			case END: pane().end(); return true;
+			// with Shift: mark from where the Shift selection started to here
+			case UP: if( k.shift ) pane().extendBy(-1); else pane().moveBy(-1); return true;
+			case DOWN: if( k.shift ) pane().extendBy(1); else pane().moveBy(1); return true;
+			case PAGE_UP: if( k.shift ) pane().extendBy(-pane().pageRows()); else pane().pageUp(); return true;
+			case PAGE_DOWN: if( k.shift ) pane().extendBy(pane().pageRows()); else pane().pageDown(); return true;
+			case HOME: if( k.shift ) pane().extendTo(0); else pane().moveTo(0); return true;
+			case END: if( k.shift ) pane().extendTo(pane().rows()-1); else pane().end(); return true;
 			case ENTER: case RIGHT: open(); return true;
 			default: return false;
 		}
