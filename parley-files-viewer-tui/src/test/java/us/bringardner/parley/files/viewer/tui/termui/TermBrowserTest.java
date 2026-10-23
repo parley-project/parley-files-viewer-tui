@@ -584,6 +584,15 @@ public class TermBrowserTest {
 		assertFalse(b.hasDialog());
 	}
 
+	/** Standalone, g names the pane's file system as its header does: Local, not fileproxy. */
+	@Test
+	public void gotoNamesThePanesFileSystem() {
+		ch('g');
+		assertScreen("Go to", "Path on Local");
+		assertFalse(screen().contains("fileproxy"), screen());
+		key(Key.Code.ESC);
+	}
+
 	/** A browser in a real fsh shell, as fsh's browse runs it: the host's connections are the shell's. */
 	private void startInShell(us.bringardner.fsh.Console console) {
 		us.bringardner.parley.files.viewer.tui.HostConnections shell = new us.bringardner.parley.files.viewer.tui.HostConnections() {
@@ -651,8 +660,8 @@ public class TermBrowserTest {
 		startInShell(shellWithConnection());
 		assertFalse(screen().contains("conn"), screen());
 		ch('g');
-		assertScreen("Go to", "Path on Local", "Ctrl-U: clear", "Ctrl-W: back a folder", tmpPath()+"/src");
-		assertFalse(screen().contains("fileproxy"), screen());
+		assertScreen("Go to", "Path", "Ctrl-U: clear", "Ctrl-W: back a folder", tmpPath()+"/src");
+		assertFalse(screen().contains("Path on"), screen());
 		b.key(Key.ctrl('w'));
 		key(Key.Code.ENTER);
 		pumpUntil(()->screen().contains("conn"));
