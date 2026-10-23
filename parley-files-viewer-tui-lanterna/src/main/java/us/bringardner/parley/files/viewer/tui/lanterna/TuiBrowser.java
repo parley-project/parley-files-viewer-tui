@@ -553,7 +553,7 @@ public class TuiBrowser {
 		clipboard = new java.util.ArrayList<>(files);
 		clipboardCut = cut;
 		String what = files.size() == 1 ? files.get(0).getName() : files.size()+" items";
-		pane().clearMarks();
+		// (the selection stays, as in a GUI: Ctrl-X right after Ctrl-C cuts the same files)
 		setStatus((cut ? "Cut " : "Copied ")+what+": Ctrl-V "+(cut ? "moves" : "copies")+" "+(files.size() == 1 ? "it" : "them")
 				+" to the directory you're in");
 	}
