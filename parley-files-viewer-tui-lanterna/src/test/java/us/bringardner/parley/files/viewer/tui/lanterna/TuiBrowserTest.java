@@ -182,6 +182,32 @@ public class TuiBrowserTest {
 		assertTrue(right.getChild("folder").isDirectory());
 	}
 
+	/** Ctrl-C copies to the clipboard (it doesn't quit); Ctrl-V in the other pane copies there. Ctrl-X then Ctrl-V moves. */
+	@Test
+	public void ctrlCAndCtrlXThenCtrlV() throws Exception {
+		key(new KeyStroke(KeyType.ArrowDown));
+		key(new KeyStroke(KeyType.ArrowDown)); // readme.txt
+		key(new KeyStroke('c', true, false));
+		waitFor(()->browser.getStatus().startsWith("Copied readme.txt: Ctrl-V"), "the copy to the clipboard");
+		assertTrue(thread.isAlive());
+		key(new KeyStroke(KeyType.Tab));
+		key(new KeyStroke('v', true, false));
+		waitFor(()->browser.getStatus().startsWith("Copied 1"), "the paste");
+		assertTrue(right.getChild("readme.txt").exists());
+		assertTrue(left.getChild("readme.txt").exists());
+		// cut the left one and paste it into folder/
+		key(new KeyStroke(KeyType.Tab));
+		key(new KeyStroke('x', true, false));
+		waitFor(()->browser.getStatus().startsWith("Cut readme.txt"), "the cut");
+		key(new KeyStroke(KeyType.ArrowUp)); // folder/
+		key(new KeyStroke(KeyType.Enter));
+		waitFor(()->showsDir(text(), "/left/folder"), "entering folder");
+		key(new KeyStroke('v', true, false));
+		waitFor(()->browser.getStatus().startsWith("Moved 1"), "the move");
+		assertTrue(left.getChild("folder").getChild("readme.txt").exists());
+		assertTrue(!left.getChild("readme.txt").exists());
+	}
+
 	@Test
 	public void viewsAFile() throws Exception {
 		key(new KeyStroke(KeyType.ArrowDown));

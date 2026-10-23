@@ -242,7 +242,9 @@ public class TermBrowserTest {
 		ch('q');
 		assertFalse(b.hasDialog());
 		ch('?');
-		assertScreen("Moving around", "connect this pane");
+		assertScreen("Moving around");
+		key(Key.Code.END);
+		assertScreen("connect this pane");
 		key(Key.Code.ESC);
 		assertFalse(b.hasDialog());
 	}
@@ -340,6 +342,65 @@ public class TermBrowserTest {
 		pumpUntil(()->b.getStatus().startsWith("Copied"));
 		assertEquals("alpha\nsecond line\n", read(dest.getChild("a.txt")));
 		assertEquals("bravo\n", read(dest.getChild("b.txt")));
+	}
+
+	/**
+	 * Ctrl-C copies the marked files (else the one under the cursor) to the clipboard and Ctrl-V
+	 * copies them into the directory the active pane is in; it can be pasted again. Ctrl-C no
+	 * longer quits.
+	 */
+	@Test
+	public void ctrlCThenCtrlVCopiesWhereYouAre() throws IOException {
+		down(3); // b.txt
+		b.key(Key.ctrl('c'));
+		assertFalse(b.isDone());
+		assertEquals("Copied b.txt: Ctrl-V copies it to the directory you're in", b.getStatus());
+		assertFalse(dest.getChild("b.txt").exists());
+		key(Key.Code.TAB); // the dest pane
+		b.key(Key.ctrl('v'));
+		pumpUntil(()->b.getStatus().startsWith("Copied 1"));
+		pumpIdle();
+		assertEquals("bravo\n", read(dest.getChild("b.txt")));
+		assertTrue(src.getChild("b.txt").exists());
+		assertScreen("b.txt");
+		// again, into a folder of its own
+		dest.getChild("again").mkdirs();
+		b.key(Key.ctrl('r'));
+		pumpIdle();
+		key(Key.Code.HOME);
+		down(1); // again/
+		key(Key.Code.ENTER);
+		pumpUntil(()->activeName().equals("again"));
+		pumpIdle();
+		b.key(Key.ctrl('v'));
+		pumpUntil(()->b.getStatus().startsWith("Copied 1"));
+		assertEquals("bravo\n", read(dest.getChild("again").getChild("b.txt")));
+	}
+
+	/** Ctrl-X then Ctrl-V moves (once: the clipboard is then empty); pasting where they already are does nothing. */
+	@Test
+	public void ctrlXThenCtrlVMoves() throws IOException {
+		down(2);
+		shift(Key.Code.DOWN); // a.txt and b.txt
+		b.key(Key.ctrl('x'));
+		assertEquals("Cut 2 items: Ctrl-V moves them to the directory you're in", b.getStatus());
+		assertTrue(src.getChild("a.txt").exists());
+		// pasting in the same directory: nothing happens, and the clipboard keeps them
+		b.key(Key.ctrl('v'));
+		assertEquals("They're already here: paste in another directory", b.getStatus());
+		assertFalse(b.hasDialog());
+		key(Key.Code.HOME);
+		down(1); // sub/, then in it
+		key(Key.Code.ENTER);
+		pumpUntil(()->activeName().equals("sub"));
+		pumpIdle();
+		b.key(Key.ctrl('v'));
+		pumpUntil(()->b.getStatus().startsWith("Moved 2"));
+		assertFalse(src.getChild("a.txt").exists());
+		assertEquals("bravo\n", read(src.getChild("sub").getChild("b.txt")));
+		// a paste uses up a cut
+		b.key(Key.ctrl('v'));
+		assertEquals("Nothing to paste: Ctrl-C copies, Ctrl-X cuts", b.getStatus());
 	}
 
 	/** a (twice: all, then none) clears the marks and puts the cursor back on ../ */

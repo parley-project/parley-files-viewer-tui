@@ -115,6 +115,7 @@ public class TuiBrowser {
 			"                               here, edited, and copied back if you saved)",
 			"  c  F5                        copy to the other pane's directory (one pane: asks where)",
 			"  m  F6                        move to the other pane's directory (one pane: asks where)",
+			"  Ctrl-C / Ctrl-X, then Ctrl-V copy / cut, then paste in the directory you're in",
 			"  r                            rename",
 			"  n  F7                        new directory",
 			"  d  F8  Delete                delete",
@@ -332,6 +333,16 @@ public class TuiBrowser {
 				default: return false;
 			}
 		}
+		// the clipboard: Ctrl-C copies or Ctrl-X cuts the marked files (else the one under the
+		// cursor); Ctrl-V, in another directory (either pane), copies or moves them there
+		if( type == KeyType.Character && key.isCtrlDown() && !key.isAltDown()) {
+			switch (Character.toLowerCase(key.getCharacter())) {
+				case 'c': clip(false); return true;
+				case 'x': clip(true); return true;
+				case 'v': paste(); return true;
+				default: break;
+			}
+		}
 		if( type == KeyType.Character && key.isCtrlDown() && (key.getCharacter() == 'r' || key.getCharacter() == 'R')) {
 			pane().refresh();
 			return true;
@@ -526,7 +537,64 @@ public class TuiBrowser {
 				+FileOps.describe(dest.getFileSourceFactory())+"] "+dest.getAbsolutePath()+" ?")) {
 			return;
 		}
+		startCopy(files, dest, move);
+	}
 
+	/** what Ctrl-C copied or Ctrl-X cut, for Ctrl-V */
+	private List<FileSource> clipboard = new java.util.ArrayList<>();
+	private boolean clipboardCut;
+
+	private void clip(boolean cut) {
+		List<FileSource> files = pane().getSelection();
+		if( files.isEmpty()) {
+			setStatus("Nothing to "+(cut ? "cut" : "copy"));
+			return;
+		}
+		clipboard = new java.util.ArrayList<>(files);
+		clipboardCut = cut;
+		String what = files.size() == 1 ? files.get(0).getName() : files.size()+" items";
+		pane().clearMarks();
+		setStatus((cut ? "Cut " : "Copied ")+what+": Ctrl-V "+(cut ? "moves" : "copies")+" "+(files.size() == 1 ? "it" : "them")
+				+" to the directory you're in");
+	}
+
+	/** Ctrl-V: copy (or, after Ctrl-X, move) what's on the clipboard into this pane's directory */
+	private void paste() {
+		if( clipboard.isEmpty()) {
+			setStatus("Nothing to paste: Ctrl-C copies, Ctrl-X cuts");
+			return;
+		}
+		List<FileSource> files = clipboard;
+		boolean move = clipboardCut;
+		FileSource here = pane().getDirectory();
+		if( allIn(files, here)) {
+			setStatus((files.size() == 1 ? files.get(0).getName()+" is" : "They're")+" already here: paste in another directory");
+			return;
+		}
+		if( move ) {
+			// what was cut is moved once; then it's gone from where it was
+			clipboard = new java.util.ArrayList<>();
+		}
+		startCopy(files, here, move);
+	}
+
+	/** true if every one of files is in dir */
+	private static boolean allIn(List<FileSource> files, FileSource dir) {
+		for(FileSource f : files) {
+			try {
+				FileSource parent = f.getParentFile();
+				if( parent == null || !parent.getAbsolutePath().equals(dir.getAbsolutePath())
+						|| !parent.getFileSourceFactory().isSameFileSystem(dir.getFileSourceFactory())) {
+					return false;
+				}
+			} catch (IOException e) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private void startCopy(List<FileSource> files, FileSource dest, boolean move) {
 		ProgressWindow progress = new ProgressWindow(move ? "Moving" : "Copying");
 		CopyJob job = new CopyJob(files, dest, move, new CopyJob.Listener() {
 			@Override
