@@ -397,7 +397,8 @@ public class TuiBrowserTest {
 		}
 		key(new KeyStroke(KeyType.Enter));
 		waitFor(()->text().contains("1 found"), "search results");
-		assertTrue(text().contains("/left/readme.txt"), text());
+		// (relative to the folder searched)
+		assertTrue(text().contains("readme.txt") && !text().contains("/left/readme.txt"), text());
 		key(new KeyStroke(KeyType.Escape));
 		waitFor(()->!text().contains("1 found"), "results to close");
 	}
