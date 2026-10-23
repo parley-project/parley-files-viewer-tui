@@ -85,7 +85,7 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `[` `]` | back / forward in the pane's history |
 | Tab | switch panes (one pane: switch locations) |
 | `w` | one pane / two panes |
-| `g` | go to a path |
+| `g` | go to a path (in fsh, in the shell's file tree, connections included); in the box, Ctrl-U clears it and Ctrl-W goes back a folder |
 | `=` | show this pane's directory in the other pane |
 | Space, Insert | mark / unmark |
 | `a` | mark all / clear marks |
@@ -106,6 +106,9 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `q` F10 | quit |
 
 Commands act on the marked entries, or on the one under the cursor when nothing is marked.
+
+In any text box, Ctrl-U clears it and Ctrl-W deletes back to the previous `/` or space (in a
+path, back a folder).
 
 The connect form shows only the settings that apply: "Log in with" shows the password field, or
 the key file's, as it changes, and the advanced settings are behind More.... The line under the

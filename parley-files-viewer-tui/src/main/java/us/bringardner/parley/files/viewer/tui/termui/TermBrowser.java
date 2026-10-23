@@ -85,7 +85,7 @@ public class TermBrowser implements Tui.App {
 			"  [ / ]                        back / forward in this pane's history",
 			"  Tab                          switch panes (one pane: switch between the two locations)",
 			"  w                            one pane / two panes",
-			"  g                            go to a path",
+			"  g                            go to a path (in it: Ctrl-U clears, Ctrl-W goes back a folder)",
 			"  = (equals)                   show this pane's directory in the other pane",
 			"",
 			"Marking",
@@ -143,6 +143,9 @@ public class TermBrowser implements Tui.App {
 					setStatus(text);
 				}
 			});
+		}
+		for(TermPane p : panes) {
+			p.setFolders(this::inHost);
 		}
 		panes[0].go(left);
 		panes[1].go(right);
@@ -462,14 +465,19 @@ public class TermBrowser implements Tui.App {
 		}
 	}
 
-	/** A relative path is from this pane's directory; an absolute one is on suggested's file system. */
+	/**
+	 * A relative path is from this pane's directory; an absolute one is in the shell's file tree in
+	 * fsh (so /mem/x is on the memory file system connected at /mem), else on suggested's file system.
+	 */
 	private FileSource destination(String path, FileSource suggested) {
 		path = path.trim();
 		if( path.isEmpty()) {
 			return null;
 		}
 		try {
-			FileSource dir = path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*")
+			us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
+			FileSource dir = hc != null && path.startsWith("/") ? hc.file(path)
+					: path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*")
 					? suggested.getFileSourceFactory().createFileSource(path)
 					: pane().getDirectory().getChild(path);
 			if( !dir.isDirectory()) {
@@ -614,14 +622,18 @@ public class TermBrowser implements Tui.App {
 		}, ()->setStatus("Delete canceled")));
 	}
 
+	/**
+	 * g: go to a path. In fsh it's a path in the shell's file tree, so its connections are there
+	 * (/mem); standalone, a path on the pane's file system. A relative path is from the pane's folder.
+	 */
 	private void gotoPath() {
-		dialogs.open(new Dialog.Prompt("Go to", "Path on "+pane().getFactory().getTypeId(),
+		Dialog.Prompt prompt = new Dialog.Prompt("Go to", "Path on "+Connections.label(pane().getFactory().getTypeId()),
 				pane().getDirectory().getAbsolutePath(), path->{
 					if( path.trim().isEmpty()) {
 						return;
 					}
 					try {
-						FileSource target = pane().getFactory().createFileSource(path.trim());
+						FileSource target = resolve(path.trim());
 						if( target.isDirectory()) {
 							pane().go(target);
 						} else if( target.exists()) {
@@ -632,7 +644,39 @@ public class TermBrowser implements Tui.App {
 					} catch (IOException e) {
 						error("Can't go to "+path, e);
 					}
-				}));
+				});
+		prompt.hint = "Enter: go to it   Esc: cancel   Ctrl-U: clear   Ctrl-W: back a folder";
+		dialogs.open(prompt);
+	}
+
+	/** a path typed in g: in fsh, in the shell's file tree; standalone, on the pane's file system */
+	private FileSource resolve(String path) throws IOException {
+		us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
+		if( hc == null ) {
+			return pane().getFactory().createFileSource(path);
+		}
+		if( !path.startsWith("/")) {
+			String dir = pane().getDirectory().getAbsolutePath();
+			path = (dir.endsWith("/") ? dir : dir+"/")+path;
+		}
+		return hc.file(path);
+	}
+
+	/**
+	 * A folder as the panes show it: in fsh, a local folder is the same folder in the shell's file
+	 * tree, so the shell's connections are listed in it and above it (going up from a local folder
+	 * with no connection under it reached the local disk's / without them); standalone, as it is.
+	 */
+	private FileSource inHost(FileSource local) {
+		us.bringardner.parley.files.viewer.tui.HostConnections hc = host.connections();
+		if( hc == null || !FileOps.isLocal(local)) {
+			return local;
+		}
+		try {
+			return hc.file(local.getAbsolutePath().replace('\\', '/'));
+		} catch (IOException e) {
+			return local;
+		}
 	}
 
 	private void search() {
