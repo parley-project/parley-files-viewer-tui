@@ -78,6 +78,10 @@ public class Search extends ShellCommand {
 					found[0]++;
 					String path = file.getAbsolutePath();
 					String rel = path.startsWith(base) ? path.substring(base.length()) : "/"+file.getName();
+					if( base.indexOf('\\') >= 0 ) {
+						// (a Windows path: its \ is a separator here, and the output has /)
+						rel = rel.replace('\\', '/');
+					}
 					if( !rel.startsWith("/")) {
 						rel = "/"+rel;
 					}

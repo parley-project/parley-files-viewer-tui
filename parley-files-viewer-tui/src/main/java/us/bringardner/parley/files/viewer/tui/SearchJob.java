@@ -136,7 +136,7 @@ public final class SearchJob implements Runnable {
 						break;
 					}
 					try {
-						if( !includeHidden && kid.isHidden()) {
+						if( !includeHidden && (kid.isHidden() || kid.getName().startsWith("."))) {
 							continue;
 						}
 						boolean isDir = kid.isDirectory();
