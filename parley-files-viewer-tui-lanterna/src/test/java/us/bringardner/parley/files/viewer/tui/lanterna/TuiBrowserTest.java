@@ -110,6 +110,8 @@ public class TuiBrowserTest {
 
 	/** A pane header ends with path (followed by a space, or at the end of its line). */
 	private static boolean showsDir(String screenText, String path) {
+		// (the headers show the folder's own path: with \ on Windows)
+		path = path.replace('/', java.io.File.separatorChar);
 		return screenText.contains(path+" ") || screenText.contains(path+"\n");
 	}
 
@@ -422,7 +424,8 @@ public class TuiBrowserTest {
 		assertTrue(deep.mkdirs());
 		FileSource target = deep;
 		browser.getGui().getGUIThread().invokeLater(()->browser.getPane(0).go(target));
-		waitFor(()->text().contains("/and-one-more/deep"), "the end of the long path");
+		String end = "/and-one-more/deep".replace('/', java.io.File.separatorChar);
+		waitFor(()->text().contains(end), "the end of the long path");
 		String first = text().split("\n")[0];
 		assertTrue(first.startsWith("> [Local] ..."), first);
 	}
