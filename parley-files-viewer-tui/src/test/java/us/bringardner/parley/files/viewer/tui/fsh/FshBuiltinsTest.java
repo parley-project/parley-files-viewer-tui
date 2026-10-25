@@ -58,7 +58,9 @@ public class FshBuiltinsTest {
 	/** stdout and stderr of fsh running script in tmp */
 	private String fsh(String script) throws Exception {
 		File editor = tmp.resolve("editor.sh").toFile();
-		Files.write(editor.toPath(), "#!/bin/sh\necho edited >> \"$1\"\n".getBytes(StandardCharsets.UTF_8));
+		// (no #! line on Windows, which has no /bin/sh: fsh runs the file as its own script)
+		String shebang = File.separatorChar == '\\' ? "" : "#!/bin/sh\n";
+		Files.write(editor.toPath(), (shebang+"echo edited >> \"$1\"\n").getBytes(StandardCharsets.UTF_8));
 		editor.setExecutable(true);
 
 		List<String> cmd = new ArrayList<>(Arrays.asList(
@@ -98,8 +100,8 @@ public class FshBuiltinsTest {
 
 	@Test
 	public void editsLocalAndMountedFiles() throws Exception {
-		fsh("edit d/a.txt");
-		assertEquals("hello world\nedited\n", new String(Files.readAllBytes(tmp.resolve("d/a.txt")), StandardCharsets.UTF_8));
+		String edited = fsh("edit d/a.txt");
+		assertEquals("hello world\nedited\n", new String(Files.readAllBytes(tmp.resolve("d/a.txt")), StandardCharsets.UTF_8).replace("\r", ""), edited);
 
 		// a file on a connected file system is staged, edited and copied back; the local one is untouched
 		String out = fsh("connect memory /mem; mkdir /mem/w; cp d/sub/b.md /mem/w/; edit /mem/w/b.md; view -c /mem/w/b.md");

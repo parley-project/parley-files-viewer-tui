@@ -758,7 +758,9 @@ public class TermBrowserTest {
 		assertEquals("/memory", b.getActiveDirectory().getAbsolutePath());
 		// up: it's in /, beside the local disk's folders
 		key(Key.Code.LEFT);
-		pumpUntil(()->screen().contains("memory/") && screen().contains("tmp/"));
+		// (beside the local disk's folders: /tmp on Unix, Users on Windows)
+		String besides = java.io.File.separatorChar == '\\' ? "Users/" : "tmp/";
+		pumpUntil(()->screen().contains("memory/") && screen().contains(besides));
 		pumpIdle();
 		// x and back with g: still connected (only D or quitting closes it)
 		ch('x');
@@ -913,7 +915,8 @@ public class TermBrowserTest {
 		startInShell(shellWithConnection());
 		assertFalse(screen().contains("conn"), screen());
 		ch('g');
-		assertScreen("Go to", "Path", "Ctrl-U: clear", "Ctrl-W: back a folder", tmpPath()+"/src");
+		// (the box shows the folder's own path: with \ on Windows)
+		assertScreen("Go to", "Path", "Ctrl-U: clear", "Ctrl-W: back a folder", new java.io.File(tmpPath(), "src").getPath());
 		assertFalse(screen().contains("Path on"), screen());
 		b.key(Key.ctrl('w'));
 		key(Key.Code.ENTER);
