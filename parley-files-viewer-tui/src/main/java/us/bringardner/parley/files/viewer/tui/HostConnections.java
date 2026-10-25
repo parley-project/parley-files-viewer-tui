@@ -64,7 +64,7 @@ public interface HostConnections {
 
 	/** a path's problem as a place to connect at, or null if it's fine */
 	static String checkPath(String path, java.util.Set<String> taken) {
-		if( path.isEmpty() || path.charAt(0) != '/' || path.equals("/")) {
+		if( path.isEmpty() || path.charAt(0) != '/' && !us.bringardner.parley.files.tree.VirtualFileSourceFactory.isDrivePath(path) || path.equals("/")) {
 			return "Connect at: a path such as /sftp-build";
 		}
 		if( taken.contains(path)) {
