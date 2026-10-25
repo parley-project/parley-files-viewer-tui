@@ -139,7 +139,8 @@ public final class FileOps {
 			return System.getProperty("user.home");
 		}
 		if( path.startsWith("~/") || path.startsWith("~"+File.separator)) {
-			return System.getProperty("user.home")+path.substring(1);
+			// (File puts the platform's separator between the names: "C:\Users\x\.ssh", not "C:\Users\x/.ssh")
+			return new File(System.getProperty("user.home")+path.substring(1)).getPath();
 		}
 		return path;
 	}
@@ -154,7 +155,8 @@ public final class FileOps {
 			return "~";
 		}
 		if( path.startsWith(home+File.separator)) {
-			return "~"+path.substring(home.length());
+			// (shown with /, as it is typed: ~/.ssh/id_rsa)
+			return "~"+path.substring(home.length()).replace(File.separatorChar, '/');
 		}
 		return path;
 	}
