@@ -157,6 +157,84 @@ public class JobsTest {
 		assertEquals("changed\n", read(dest.getChild("src").getChild("a.txt")));
 	}
 
+	/** Only the files a test expects: no hidden copies left behind. */
+	private static List<String> names(FileSource dir) throws IOException {
+		List<String> ret = new ArrayList<>();
+		for(FileSource f : dir.listFiles()) {
+			ret.add(f.getName());
+		}
+		Collections.sort(ret);
+		return ret;
+	}
+
+	private CopyJob overwrite(FileSource from, FileSource destDir, java.util.function.Consumer<CopyJob> onFile) {
+		CopyJob[] job = new CopyJob[1];
+		job[0] = new CopyJob(Collections.singletonList(from), destDir, false, new CopyJob.Listener() {
+			@Override
+			public CopyJob.Conflict conflict(FileSource f, FileSource existing) {
+				return CopyJob.Conflict.OVERWRITE;
+			}
+
+			@Override
+			public void file(FileSource f, FileSource to) {
+				onFile.accept(job[0]);
+			}
+		});
+		return job[0];
+	}
+
+	@Test
+	public void overwriteLeavesNoTemporaryFile() throws IOException {
+		FileSource src = local("src");
+		FileSource dest = local("dest");
+		assertTrue(src.mkdirs());
+		assertTrue(dest.mkdirs());
+		write(src.getChild("a.txt"), "new\n");
+		write(dest.getChild("a.txt"), "old\n");
+		CopyJob job = overwrite(src.getChild("a.txt"), dest, j->{});
+		job.run();
+		assertTrue(job.getResult().getErrors().isEmpty(), job.getResult().getErrors().toString());
+		assertEquals("new\n", read(dest.getChild("a.txt")));
+		assertEquals(Arrays.asList("a.txt"), names(dest));
+	}
+
+	@Test
+	public void canceledOverwriteKeepsTheOldFile() throws IOException {
+		FileSource src = local("src");
+		FileSource dest = local("dest");
+		assertTrue(src.mkdirs());
+		assertTrue(dest.mkdirs());
+		write(src.getChild("a.txt"), "new\n");
+		write(dest.getChild("a.txt"), "old\n");
+		CopyJob job = overwrite(src.getChild("a.txt"), dest, CopyJob::cancel);
+		job.run();
+		assertEquals("old\n", read(dest.getChild("a.txt")));
+		assertEquals(Arrays.asList("a.txt"), names(dest));
+	}
+
+	@Test
+	public void failedOverwriteKeepsTheOldFile() throws IOException {
+		FileSource src = local("src");
+		FileSource dest = local("dest");
+		assertTrue(src.mkdirs());
+		assertTrue(dest.mkdirs());
+		FileSource from = src.getChild("a.txt");
+		write(from, "new\n");
+		write(dest.getChild("a.txt"), "old\n");
+		// the source can't be read when its turn comes
+		CopyJob job = overwrite(from, dest, j->{
+			try {
+				assertTrue(from.delete());
+			} catch (IOException e) {
+				throw new java.io.UncheckedIOException(e);
+			}
+		});
+		job.run();
+		assertFalse(job.getResult().getErrors().isEmpty());
+		assertEquals("old\n", read(dest.getChild("a.txt")));
+		assertEquals(Arrays.asList("a.txt"), names(dest));
+	}
+
 	@Test
 	public void refusesCopyIntoItselfOrSameDirectory() throws IOException {
 		FileSource src = tree();

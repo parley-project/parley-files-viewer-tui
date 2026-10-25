@@ -280,32 +280,52 @@ public final class CopyJob implements Runnable {
 		return true;
 	}
 
+	/**
+	 * Copies one file. A file already at {@code to} is replaced only once the copy is complete: the
+	 * copy is written to a hidden name next to it and then renamed over it, so a failed or canceled
+	 * copy leaves the old file as it was. Only what this copy wrote is ever deleted.
+	 */
 	private void copyFile(FileSource from, FileSource to) throws IOException {
 		int block = FileSourceCopy.blockSizeFor(from, to);
 		StreamOptions options = FileSourceCopy.optionsFor(block);
+		boolean replacing = to.exists();
+		FileSource written = replacing ? tempFor(to) : to;
+		boolean opened = false;
 		boolean done = false;
-		try (InputStream in = from.getInputStream(options); OutputStream out = to.getOutputStream(false, options)) {
-			byte[] buffer = new byte[block];
-			int n;
-			while( (n = in.read(buffer)) >= 0 ) {
-				if( canceled ) {
-					break;
-				}
-				if( n > 0 ) {
-					out.write(buffer, 0, n);
-					result.bytes += n;
-					report(false);
+		try (InputStream in = from.getInputStream(options)) {
+			try (OutputStream out = written.getOutputStream(false, options)) {
+				opened = true;
+				byte[] buffer = new byte[block];
+				int n;
+				while( (n = in.read(buffer)) >= 0 ) {
+					if( canceled ) {
+						break;
+					}
+					if( n > 0 ) {
+						out.write(buffer, 0, n);
+						result.bytes += n;
+						report(false);
+					}
 				}
 			}
 			done = !canceled;
 		} finally {
-			if( !done ) {
+			if( !done && opened ) {
+				// only the start of the file: remove it (never a file that was there before)
 				try {
-					to.delete();
+					written.delete();
 				} catch (IOException e) {
 					// leave it; the copy already failed
 				}
 			}
+		}
+		if( replacing && !written.renameTo(to, true)) {
+			try {
+				written.delete();
+			} catch (IOException e) {
+				// leave it; report the failure below
+			}
+			throw new IOException("Can't replace "+to.getAbsolutePath());
 		}
 		try {
 			long modified = from.lastModified();
@@ -315,6 +335,15 @@ public final class CopyJob implements Runnable {
 		} catch (IOException | RuntimeException e) {
 			// not every file system can set it
 		}
+	}
+
+	/** A hidden name next to {@code target} for a copy that will replace it. */
+	static FileSource tempFor(FileSource target) throws IOException {
+		FileSource parent = target.getParentFile();
+		if( parent == null ) {
+			throw new IOException("Can't replace "+target.getAbsolutePath()+": it has no parent directory");
+		}
+		return parent.getChild("."+target.getName()+"."+Long.toHexString(System.nanoTime())+".copying");
 	}
 
 	private void fail(FileSource src, IOException e) {

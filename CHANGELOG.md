@@ -42,6 +42,12 @@
   file system as its header does (Local, not fileproxy). In its box, and in
   every text box, Ctrl-U clears it and Ctrl-W goes back a folder; the box says so.
 
+### Fixed
+
+- Copying over an existing file no longer loses it when the copy fails or is canceled (a source
+  that couldn't be read deleted it): the copy is written to a hidden name next to it
+  (`.<name>.<hex>.copying`) and replaces it only once complete.
+
 ## parley-files-viewer-tui 1.0.0 (unreleased)
 
 First version: parley-files-viewer without a GUI, browsing parley-files file systems in a terminal,
