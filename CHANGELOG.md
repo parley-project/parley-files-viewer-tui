@@ -2,6 +2,13 @@
 
 ## parley-files-viewer-tui 2.0.0 (unreleased)
 
+### Added
+
+- **Sorting, both browsers.** `F` reverses the pane's order (Z–A, smallest first, oldest first);
+  the next `f` goes to the next column in its usual direction. The table header marks the column
+  the pane is sorted by, ▲ (low to high) or ▼ (high to low), and the header line says `reversed`.
+  `f sort` is on the key bar (last, so it shows on wide terminals).
+
 ### Changed
 
 - **Built into fsh.** fsh now depends on `parley-files-viewer-tui` and has `browse` (this

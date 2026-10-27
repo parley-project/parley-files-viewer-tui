@@ -45,5 +45,6 @@ public class LayoutTest {
 		String wide = TuiBrowser.keyBar(500);
 		assertTrue(wide.startsWith("Tab pane"), wide);
 		assertTrue(wide.contains("h hidden"), wide);
+		assertTrue(wide.contains("h hidden  f sort"), wide);
 	}
 }

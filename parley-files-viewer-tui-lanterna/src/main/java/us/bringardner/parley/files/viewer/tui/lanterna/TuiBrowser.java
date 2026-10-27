@@ -75,7 +75,7 @@ public class TuiBrowser {
 
 	/** The key bar's entries, most useful first; what doesn't fit the width is left off (? lists them all). */
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
-			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden"};
+			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden", "f sort"};
 
 	/** The key bar for a screen this wide: as many entries as fit, in their usual order, help and quit last. */
 	static String keyBar(int width) {
@@ -136,7 +136,8 @@ public class TuiBrowser {
 			"  D                            disconnect the connection under the cursor (elsewhere: choose one)",
 			"  t                            shell in this directory (local file systems)",
 			"  h                            show / hide hidden files",
-			"  f                            sort by name, size, modified",
+			"  f                            sort by name, size, modified (the column is marked \u25b2 / \u25bc)",
+			"  F                            reverse the order (Z-A, smallest first, oldest first)",
 			"  Ctrl-R                       refresh",
 			"  ?  F1                        this help",
 			"  q  F10                       quit");
@@ -359,6 +360,7 @@ public class TuiBrowser {
 				case 'g': gotoPath(); return true;
 				case 'h': pane().setShowHidden(!pane().isShowHidden()); return true;
 				case 'f': pane().nextSort(); return true;
+				case 'F': pane().reverseSort(); return true;
 				case 'a': pane().toggleMarkAll(); return true;
 				case ' ': pane().toggleMark(); return true;
 				case '[': pane().back(); return true;

@@ -75,7 +75,7 @@ public class TermBrowser implements Tui.App {
 	}
 
 	static final String[] KEY_BAR = {"? help", "q quit", "Tab pane", "w layout", "v view", "e edit", "c copy", "m move",
-			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden"};
+			"d delete", "n mkdir", "r rename", "s search", "o connect", "t shell", "g goto", "h hidden", "f sort"};
 
 	static final String HELP = String.join("\n",
 			"Moving around",
@@ -110,7 +110,8 @@ public class TermBrowser implements Tui.App {
 			"  D                            disconnect the connection under the cursor (elsewhere: choose one)",
 			"  t                            shell in this directory (local file systems)",
 			"  h                            show / hide hidden files",
-			"  f                            sort by name, size, modified",
+			"  f                            sort by name, size, modified (the column is marked \u25b2 / \u25bc)",
+			"  F                            reverse the order (Z-A, smallest first, oldest first)",
 			"  Ctrl-R                       refresh",
 			"  ?  F1                        this help",
 			"  q  F10                       quit");
@@ -279,6 +280,7 @@ public class TermBrowser implements Tui.App {
 				case 'g': gotoPath(); return true;
 				case 'h': pane().setShowHidden(!pane().isShowHidden()); return true;
 				case 'f': pane().nextSort(); return true;
+				case 'F': pane().reverseSort(); return true;
 				case 'a': pane().toggleMarkAll(); return true;
 				case ' ': pane().toggleMark(); return true;
 				case '[': pane().back(); return true;

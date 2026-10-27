@@ -117,7 +117,8 @@ keys for themselves; the Midnight Commander function keys work too. `?` shows th
 | `x` | back to the local disk, where this pane last was there (else home) |
 | `t` | shell in this directory (local file systems) |
 | `h` | show / hide hidden files |
-| `f` | sort by name, size, modified |
+| `f` | sort by name, size, modified (folders first; the column is marked ▲ low to high or ▼ high to low; `f sort` is on the key bar) |
+| `F` | reverse the order: Z–A, smallest first, oldest first (the next `f` starts in the usual direction) |
 | Ctrl-R | refresh |
 | `q` F10 | quit |
 
