@@ -4,6 +4,12 @@
 
 ### Changed
 
+- **Built into fsh.** fsh now depends on `parley-files-viewer-tui` and has `browse` (this
+  browser), `view`, `edit` and `search` as builtins, so they need no plugin folder and are in
+  every native fsh. The fsh glue (`us.bringardner.parley.files.viewer.tui.fsh`: `TerminalBrowser`,
+  `ViewerCommands`, `View`, `Edit`, `Search`) moved into fsh, and this module no longer depends on
+  fsh or is a plugin jar (no `Parley-Plugin-Api`, no `META-INF/services` for fsh). Build it before
+  fsh. The Lanterna module is still an fsh plugin (`browse --with lanterna`), built after fsh.
 - **Two modules.** `parley-files-viewer-tui`: the browser on parley-term (Parley's own terminal
   code, no UI library), on its own (`pfv`) and as an fsh plugin. `parley-files-viewer-tui-lanterna`:
   the Lanterna browser, on its own (`pfv-lanterna`) and as another fsh plugin.

@@ -13,7 +13,7 @@ It comes two ways:
 | | How | What it is |
 |---|---|---|
 | On its own | `scripts/pfv` | A Commander-style browser: two panes side by side, or one pane at full width (`w` switches, `--single` starts that way) |
-| In fsh | the jar in fsh's plugin folder | [fsh](https://github.com/parley-project/parley-fsh), the bash-compatible shell over any file system, gets the browser for its `browse` command, and `view`, `edit` and `search` |
+| In fsh | built in | [fsh](https://github.com/parley-project/parley-fsh), the bash-compatible shell over any file system, has this browser for its `browse` command, and `view`, `edit` and `search`: fsh depends on this module |
 
 Both use one engine: the copy, search, edit and preview code is the same, and `browse` in fsh
 opens the browser on the shell's own file tree (connections included) and drops you back at the prompt
@@ -22,11 +22,14 @@ when you quit.
 The browser is built on [parley-term](https://github.com/parley-project/parley-term), Parley's
 own terminal code, with no UI library. The repository has a second module,
 `parley-files-viewer-tui-lanterna`: the same browser on [Lanterna](https://github.com/mabe02/lanterna),
-on its own (`scripts/pfv-lanterna`) or as another fsh plugin (`browse --with lanterna`).
+on its own (`scripts/pfv-lanterna`) or as an fsh plugin (`browse --with lanterna`).
 
 - Java 11 or later, like the other Parley modules
-- Built on parley-files (+ sftp with its parley-ssh provider, ftp and jdbc) and parley-term; fsh
-  for the plugin
+- Built on parley-files (+ sftp with its parley-ssh provider, ftp and jdbc) and parley-term; the
+  Lanterna plugin on fsh too
+- Build order: `parley-files-viewer-tui` (no fsh dependency), then fsh, which builds it in, then
+  `parley-files-viewer-tui-lanterna` (`mvn -pl parley-files-viewer-tui install`, fsh's
+  `mvn install`, then `mvn package` here)
 
 ## Building and running
 
@@ -43,20 +46,19 @@ java -jar parley-files-viewer-tui/target/parley-files-viewer-tui-2.0.0-SNAPSHOT-
 java -jar parley-files-viewer-tui-lanterna/target/parley-files-viewer-tui-lanterna-2.0.0-SNAPSHOT-all.jar [--single] [left-dir] [right-dir]
 ```
 
-### As an fsh plugin
+### The Lanterna browser as an fsh plugin
 
-Copy the jars to one of fsh's plugin folders (yours is `~/.parley/fsh/plugins`; `plugins` in fsh
-lists them all):
+fsh has the browser on parley-term built in. For `browse --with lanterna`, copy the Lanterna
+plugin to one of fsh's plugin folders (yours is `~/.parley/fsh/plugins`; `plugins` in fsh lists
+them all):
 
 ```bash
 mkdir -p ~/.parley/fsh/plugins
-cp parley-files-viewer-tui/target/parley-files-viewer-tui-2.0.0-SNAPSHOT.jar ~/.parley/fsh/plugins/
-# and, for browse --with lanterna, the Lanterna one (it needs the jar above too):
 cp parley-files-viewer-tui-lanterna/target/parley-files-viewer-tui-lanterna-2.0.0-SNAPSHOT-plugin.jar ~/.parley/fsh/plugins/
 ```
 
-The plain jars are the plugins: fsh has parley-files and parley-term already. The `-all` jars are
-for running on their own.
+The `-plugin` jar has Lanterna in it; fsh has the rest (parley-files, parley-term and this
+module's library). The `-all` jars are for running on their own.
 
 ## The full-screen browser (pfv)
 
@@ -131,14 +133,14 @@ from a drop-down of the files in that folder (`~/.ssh` to start; Enter opens it)
 Browse.... Start in says which folder to open once connected, and Connect at where in the tree
 the file system goes.
 
-## In fsh (the plugin)
+## In fsh
 
 Everything fsh does (`connect`, `cd`, `ls`, `cp`, `find`, pipes, scripts, completion; see its
 [COMMANDS.md](https://github.com/parley-project/parley-fsh/blob/master/COMMANDS.md)), plus:
 
 | Command | Does |
 |---|---|
-| `browse [-1] [-c] [DIR [DIR2]]` | fsh's own command: with this plugin, the full-screen browser on the shell's file tree; `-c` cds to where you quit; `browse --with lanterna` uses the Lanterna one |
+| `browse [-1] [-c] [DIR [DIR2]]` | the full-screen browser on the shell's file tree; `-c` cds to where you quit; `browse --with lanterna` uses the Lanterna one (a plugin) |
 | `view [-c] [-x] FILE ...` | full-screen pager; prints instead (hex for binary) when piped or with `-c` |
 | `edit FILE` | `$VISUAL` / `$EDITOR`; a file on a connected remote file system is staged locally and copied back if you saved, with a warning if it changed on the server meanwhile |
 | `search [-i] [-a] [-l] [-n NAME] [-t TEXT] [DIR ...]` | by name glob and/or contents, on any connected file system; prints paths as `find` does |
@@ -158,7 +160,9 @@ and `browse -c` reach it, and fsh's `disconnect` closes it. `D` in the browser l
 connections and disconnects one. It's the same tree `pfv` has on its own, except that the
 shell's outlives the browser.
 
-fsh finds them in its plugin folder as it starts (its `CommandProvider` and `BrowserProvider`); fsh itself has no dependency on this module.
+They are fsh builtins: fsh depends on this module (the library jar), and this module does not
+depend on fsh. The Lanterna module is still a plugin (a `BrowserProvider`), found in fsh's plugin
+folder as fsh starts.
 
 ## How it maps to parley-files-viewer
 
@@ -186,10 +190,10 @@ their own:
 - `FileOps`: formatting, labels and recursive delete
 
 The full-screen UI is `termui` (`TermBrowser`, `TermPane`, `ConnectForm`, `TermMain`), on
-parley-term; the fsh plugin is `us.bringardner.parley.files.viewer.tui.fsh` (`ViewerCommands`,
-`TerminalBrowser`). The Lanterna module's UI is `TuiBrowser`, `FilePane`, `ConnectDialog` and
-`Tui`, with `LanternaBrowser` for fsh. The tests drive each UI on a virtual terminal and run the
-commands in a real fsh.
+parley-term; fsh's `browse`, `view`, `edit` and `search` that run it are in fsh
+(`us.bringardner.fsh.commands`: `TerminalBrowser`, `View`, `Edit`, `Search`). The Lanterna module's
+UI is `TuiBrowser`, `FilePane`, `ConnectDialog` and `Tui`, with `LanternaBrowser` for fsh. The
+tests drive each UI on a virtual terminal; fsh's tests run the commands in a real fsh.
 
 ## Not done yet
 

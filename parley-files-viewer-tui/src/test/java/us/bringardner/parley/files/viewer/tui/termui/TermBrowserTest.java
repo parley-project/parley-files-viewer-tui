@@ -848,33 +848,11 @@ public class TermBrowserTest {
 		return sp < 0 ? st : st.substring(0, sp);
 	}
 
-	/** A browser in a real fsh shell, as fsh's browse runs it: the host's connections are the shell's. */
-	private void startInShell(us.bringardner.fsh.Console console) {
-		us.bringardner.parley.files.viewer.tui.HostConnections shell = new us.bringardner.parley.files.viewer.tui.HostConnections() {
-			@Override
-			public java.util.Map<String, FileSource> list() {
-				try {
-					return console.connections();
-				} catch (IOException e) {
-					return java.util.Collections.emptyMap();
-				}
-			}
-
-			@Override
-			public boolean connect(String path, FileSource top) throws IOException {
-				return console.connectAt(top, path);
-			}
-
-			@Override
-			public void disconnect(String path) throws IOException {
-				console.disconnect(path);
-			}
-
-			@Override
-			public FileSource file(String path) throws IOException {
-				return console.createFileSource(path);
-			}
-		};
+	/**
+	 * A browser as fsh's browse runs it: the host's connections are the shell's, a file tree with
+	 * connections in it (parley-files' tree, as fsh's is).
+	 */
+	private void startInShell(us.bringardner.parley.files.viewer.tui.HostConnections shell) {
 		b = new TermBrowser(src, dest, false, worker, ui, new TermBrowser.Host() {
 			@Override
 			public int runProgram(List<String> command, File dir) {
@@ -891,13 +869,13 @@ public class TermBrowserTest {
 	}
 
 	/** A memory file system with inmem.txt in it, connected in the shell at the temp folder's conn. */
-	private us.bringardner.fsh.Console shellWithConnection() throws Exception {
-		us.bringardner.fsh.Console console = new us.bringardner.fsh.Console();
+	private us.bringardner.parley.files.viewer.tui.HostConnections shellWithConnection() throws Exception {
+		us.bringardner.parley.files.viewer.tui.HostConnections console = new us.bringardner.parley.files.viewer.tui.TreeConnections();
 		us.bringardner.parley.files.memory.MemoryFileSourceFactory m = new us.bringardner.parley.files.memory.MemoryFileSourceFactory();
 		m.connect(new java.util.Properties());
 		FileSource top = m.listRoots()[0];
 		write(top.getChild("inmem.txt"), "in memory\n");
-		assertTrue(console.connectAt(top, tmpPath()+"/conn"));
+		assertTrue(console.connect(tmpPath()+"/conn", top));
 		return console;
 	}
 
@@ -979,11 +957,11 @@ public class TermBrowserTest {
 		pumpUntil(()->screen().contains("conn2"));
 	}
 
-	private us.bringardner.fsh.Console shellWithConnection2() throws Exception {
-		us.bringardner.fsh.Console console = new us.bringardner.fsh.Console();
+	private us.bringardner.parley.files.viewer.tui.HostConnections shellWithConnection2() throws Exception {
+		us.bringardner.parley.files.viewer.tui.HostConnections console = new us.bringardner.parley.files.viewer.tui.TreeConnections();
 		us.bringardner.parley.files.memory.MemoryFileSourceFactory m = new us.bringardner.parley.files.memory.MemoryFileSourceFactory();
 		m.connect(new java.util.Properties());
-		assertTrue(console.connectAt(m.listRoots()[0], tmpPath()+"/conn2"));
+		assertTrue(console.connect(tmpPath()+"/conn2", m.listRoots()[0]));
 		return console;
 	}
 }
