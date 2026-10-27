@@ -53,7 +53,7 @@
 				<version>3.6.0</version>
 				<executions>
 					<!-- target/parley-files-viewer-tui-lanterna-VERSION-plugin.jar: the fsh plugin, with
-					     Lanterna in it (parley-files-viewer-tui's jar goes in the plugin folder too) -->
+					     Lanterna in it (fsh has parley-files-viewer-tui built in) -->
 					<execution>
 						<id>plugin</id>
 						<phase>package</phase>
@@ -136,7 +136,8 @@
 			<version>${lanterna.version}</version>
 		</dependency>
 		<dependency>
-			<!-- For the plugin (its browser): fsh is there when fsh loads it -->
+			<!-- For the plugin (its browser): fsh is there when fsh loads it. fsh builds
+			     parley-files-viewer-tui in, so this module is built after fsh -->
 			<groupId>us.bringardner</groupId>
 			<artifactId>fsh</artifactId>
 			<version>2.0.0-SNAPSHOT</version>
