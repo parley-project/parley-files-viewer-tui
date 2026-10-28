@@ -56,29 +56,45 @@ import us.bringardner.parley.files.browse.NavigationHistory;
  */
 public class FilePane extends Panel {
 
-	/** How entries are ordered; directories always come first. */
+	/** How entries are ordered (directories always first): A-Z, largest first, newest first. */
 	public enum Sort {
-		NAME(DirectoryListing.BY_NAME),
-		SIZE(DirectoryListing.BY_SIZE.reversed()),
-		MODIFIED(DirectoryListing.BY_MODIFIED.reversed());
+		NAME(DirectoryListing.BY_NAME, false),
+		SIZE(DirectoryListing.BY_SIZE.reversed(), true),
+		MODIFIED(DirectoryListing.BY_MODIFIED.reversed(), true);
 
-		final Comparator<FileEntry> order;
+		private final Comparator<FileEntry> natural;
+		/** its usual order runs high to low (largest, newest first) */
+		private final boolean descending;
 
-		Sort(Comparator<FileEntry> order) {
-			this.order = DirectoryListing.directoriesFirst(order);
+		Sort(Comparator<FileEntry> natural, boolean descending) {
+			this.natural = natural;
+			this.descending = descending;
 		}
 
 		Sort next() {
 			return values()[(ordinal()+1) % values().length];
 		}
+
+		/** this order, or the other way round; directories first either way */
+		Comparator<FileEntry> order(boolean reversed) {
+			return DirectoryListing.directoriesFirst(reversed ? natural.reversed() : natural);
+		}
+
+		/** the column header's mark: ▲ low to high (A-Z, smallest, oldest first), ▼ high to low */
+		String arrow(boolean reversed) {
+			return descending != reversed ? "\u25bc" : "\u25b2";
+		}
 	}
+
+	/** the table's columns, in the order of Sort's values */
+	private static final String[] COLUMNS = {"Name", "Size", "Modified"};
 
 	private static final String PARENT = "..";
 	private static final int SIZE_WIDTH = 7;
 	private static final int DATE_WIDTH = 16;
 
 	private final Label header = new Label("");
-	private final Table<String> table = new Table<>("Name", "Size", "Modified");
+	private final Table<String> table = new Table<>(COLUMNS);
 	private final NavigationHistory history = new NavigationHistory();
 	private final Executor worker;
 	private final TextGUIThread guiThread;
@@ -102,6 +118,7 @@ public class FilePane extends Panel {
 	private boolean showHidden;
 	private boolean active;
 	private Sort sort = Sort.NAME;
+	private boolean reversed;
 	private int nameWidth = 30;
 	private int paneWidth = 80;
 	private long loadSerial;
@@ -188,8 +205,20 @@ public class FilePane extends Panel {
 		return sort;
 	}
 
+	public boolean isSortReversed() {
+		return reversed;
+	}
+
+	/** The next order (name, size, modified), in its usual direction. */
 	public void nextSort() {
 		sort = sort.next();
+		reversed = false;
+		refill(currentName());
+	}
+
+	/** The same order the other way round (Z-A, smallest first, oldest first). */
+	public void reverseSort() {
+		reversed = !reversed;
 		refill(currentName());
 	}
 
@@ -477,9 +506,13 @@ public class FilePane extends Panel {
 
 	private void refill(String select) {
 		shown = new ArrayList<>(DirectoryListing.shown(all, showHidden));
-		shown.sort(sort.order);
+		shown.sort(sort.order(reversed));
 		TableModel<String> model = table.getTableModel();
 		model.clear();
+		// (the column the pane is sorted by, marked ▲ or ▼)
+		for(int c=0; c < COLUMNS.length; c++) {
+			model.setColumnLabel(c, COLUMNS[c]+(c == sort.ordinal() ? " "+sort.arrow(reversed) : ""));
+		}
 		if( hasParent ) {
 			model.addRow(PARENT+"/", "", "");
 		}
@@ -517,7 +550,8 @@ public class FilePane extends Panel {
 		FileSource dir = getDirectory();
 		String lead = (active ? "> " : "  ")+(tag == null ? "" : tag+" ")
 				+(dir == null ? "" : "["+FileOps.describe(dir.getFileSourceFactory())+"] ");
-		String flags = (showHidden ? " +hidden" : "")+(sort == Sort.NAME ? "" : " by "+sort.name().toLowerCase());
+		String flags = (showHidden ? " +hidden" : "")+(sort == Sort.NAME && !reversed ? "" : " by "+sort.name().toLowerCase())
+				+(reversed ? " reversed" : "");
 		header.setText(fitHeader(lead, dir == null ? "" : dir.getAbsolutePath(), flags, paneWidth));
 		if( active ) {
 			header.setForegroundColor(TextColor.ANSI.BLACK);

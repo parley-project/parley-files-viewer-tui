@@ -47,19 +47,33 @@ import us.bringardner.parley.term.screen.Theme;
  */
 final class TermPane {
 
+	/** How entries are ordered (directories always first): A-Z, largest first, newest first. */
 	enum Sort {
-		NAME(DirectoryListing.BY_NAME),
-		SIZE(DirectoryListing.BY_SIZE.reversed()),
-		MODIFIED(DirectoryListing.BY_MODIFIED.reversed());
+		NAME(DirectoryListing.BY_NAME, false),
+		SIZE(DirectoryListing.BY_SIZE.reversed(), true),
+		MODIFIED(DirectoryListing.BY_MODIFIED.reversed(), true);
 
-		final Comparator<FileEntry> order;
+		private final Comparator<FileEntry> natural;
+		/** its usual order runs high to low (largest, newest first) */
+		private final boolean descending;
 
-		Sort(Comparator<FileEntry> order) {
-			this.order = DirectoryListing.directoriesFirst(order);
+		Sort(Comparator<FileEntry> natural, boolean descending) {
+			this.natural = natural;
+			this.descending = descending;
 		}
 
 		Sort next() {
 			return values()[(ordinal()+1) % values().length];
+		}
+
+		/** this order, or the other way round; directories first either way */
+		Comparator<FileEntry> order(boolean reversed) {
+			return DirectoryListing.directoriesFirst(reversed ? natural.reversed() : natural);
+		}
+
+		/** the column header's mark: ▲ low to high (A-Z, smallest, oldest first), ▼ high to low */
+		String arrow(boolean reversed) {
+			return descending != reversed ? "\u25bc" : "\u25b2";
 		}
 	}
 
@@ -82,6 +96,7 @@ final class TermPane {
 	private boolean hasParent;
 	private boolean showHidden;
 	private Sort sort = Sort.NAME;
+	private boolean reversed;
 	private int selected;
 	private int visibleRows = 20;
 	private long loadSerial;
@@ -129,8 +144,20 @@ final class TermPane {
 		return sort;
 	}
 
+	boolean isSortReversed() {
+		return reversed;
+	}
+
+	/** The next order (name, size, modified), in its usual direction. */
 	void nextSort() {
 		sort = sort.next();
+		reversed = false;
+		refill(currentName());
+	}
+
+	/** The same order the other way round (Z-A, smallest first, oldest first). */
+	void reverseSort() {
+		reversed = !reversed;
 		refill(currentName());
 	}
 
@@ -251,7 +278,7 @@ final class TermPane {
 
 	private void refill(String select) {
 		shown = new ArrayList<>(DirectoryListing.shown(all, showHidden));
-		shown.sort(sort.order);
+		shown.sort(sort.order(reversed));
 		selected = 0;
 		if( select != null ) {
 			for(int idx=0; idx < shown.size(); idx++) {
@@ -437,14 +464,15 @@ final class TermPane {
 		FileSource dir = getDirectory();
 		String lead = (active ? "> " : "  ")+(tag == null ? "" : tag+" ")
 				+(dir == null ? "" : "["+FileOps.describe(dir.getFileSourceFactory())+"] ");
-		String flags = (showHidden ? " +hidden" : "")+(sort == Sort.NAME ? "" : " by "+sort.name().toLowerCase());
+		String flags = (showHidden ? " +hidden" : "")+(sort == Sort.NAME && !reversed ? "" : " by "+sort.name().toLowerCase())
+				+(reversed ? " reversed" : "");
 		screen.line(area, fitHeader(lead, dir == null ? "" : dir.getAbsolutePath(), flags, area.width), active ? Theme.HEADER : Theme.BOLD);
 	}
 
 	private void renderTable(Screen screen, Rect area) {
 		visibleRows = Math.max(1, area.height-1);
 		int nameWidth = Math.max(10, area.width-SIZE_WIDTH-DATE_WIDTH-2);
-		screen.line(area.row(0), pad("Name", nameWidth)+" "+pad("Size", SIZE_WIDTH)+" Modified", Theme.BOLD);
+		screen.line(area.row(0), columnHeader(nameWidth), Theme.BOLD);
 		List<String> lines = new ArrayList<>();
 		List<Style> styles = new ArrayList<>();
 		if( hasParent ) {
@@ -476,6 +504,13 @@ final class TermPane {
 			Style style = idx == selected ? (active ? Theme.HIGHLIGHT : styles.get(idx).underline()) : styles.get(idx);
 			screen.line(row, lines.get(idx), style);
 		}
+	}
+
+	/** Name, Size and Modified, the column the pane is sorted by marked ▲ or ▼. */
+	String columnHeader(int nameWidth) {
+		String arrow = " "+sort.arrow(reversed);
+		return pad("Name"+(sort == Sort.NAME ? arrow : ""), nameWidth)+" "
+				+pad("Size"+(sort == Sort.SIZE ? arrow : ""), SIZE_WIDTH)+" Modified"+(sort == Sort.MODIFIED ? arrow : "");
 	}
 
 	private static String pad(String text, int width) {

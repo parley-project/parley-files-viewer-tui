@@ -143,6 +143,20 @@ public class TuiBrowserTest {
 		assertTrue(screenText.contains("q quit"), screenText);
 	}
 
+	/** f sorts by the next column, marked ▲ or ▼ in the table's header; F reverses the order. */
+	@Test
+	public void sortsByAColumnAndReverses() throws Exception {
+		assertTrue(text().contains("Name \u25b2"), text());
+		type('f');
+		waitFor(()->text().contains("Size \u25bc") && text().contains("by size"), "sorted by size");
+		// (the other pane is still by name)
+		assertTrue(text().contains("Name \u25b2"), text());
+		type('F');
+		waitFor(()->text().contains("Size \u25b2") && text().contains("by size reversed"), "smallest first");
+		type('f');
+		waitFor(()->text().contains("Modified \u25bc") && !text().contains("reversed"), "sorted by modified");
+	}
+
 	@Test
 	public void entersDirectoriesAndGoesBackUp() throws Exception {
 		// cursor starts on ".."; down once is "folder/"

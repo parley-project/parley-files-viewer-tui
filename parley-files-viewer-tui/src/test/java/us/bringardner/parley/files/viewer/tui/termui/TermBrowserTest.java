@@ -261,6 +261,51 @@ public class TermBrowserTest {
 		assertScreen("by size");
 	}
 
+	/**
+	 * f sorts by name, size, modified, with that column marked ▲ (low to high) or ▼; F reverses
+	 * the order, and the next f starts the next column in its usual direction. Folders stay first.
+	 */
+	@Test
+	public void sortsByAColumnAndReverses() {
+		start(true);
+		// by name, A-Z
+		assertScreen("Name \u25b2", "Size ", "Modified");
+		assertBefore("sub/", "a.txt");
+		assertBefore("a.txt", "b.txt");
+		// Z-A
+		ch('F');
+		assertScreen("Name \u25bc", "by name reversed");
+		assertBefore("sub/", "b.txt");
+		assertBefore("b.txt", "a.txt");
+		// by size, largest first: a.txt is 18 bytes, b.txt 6
+		ch('f');
+		assertScreen("Size \u25bc", "by size");
+		assertFalse(screen().contains("reversed"), screen());
+		assertFalse(screen().contains("Name \u25b2") || screen().contains("Name \u25bc"), screen());
+		assertBefore("a.txt", "b.txt");
+		// smallest first
+		ch('F');
+		assertScreen("Size \u25b2", "by size reversed");
+		assertBefore("sub/", "b.txt");
+		assertBefore("b.txt", "a.txt");
+		// by modified, newest first, then oldest first
+		ch('f');
+		assertScreen("Modified \u25bc", "by modified");
+		ch('F');
+		assertScreen("Modified \u25b2", "by modified reversed");
+		// and round to name again
+		ch('f');
+		assertScreen("Name \u25b2");
+		assertFalse(screen().contains(" by "), screen());
+		assertTrue(TermBrowser.keyBar(500).endsWith("h hidden  f sort"), TermBrowser.keyBar(500));
+	}
+
+	/** first is shown above second */
+	private void assertBefore(String first, String second) {
+		String s = screen();
+		assertTrue(s.indexOf(first) >= 0 && s.indexOf(first) < s.indexOf(second), first+" before "+second+":\n"+s);
+	}
+
 	private void key(Key k) {
 		b.key(k);
 	}
