@@ -119,6 +119,21 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!-- META-INF/parley/launcher.list in the jar: the jars the plugin needs (Lanterna, the viewer
+			     library), so parley-launcher fetches them when the plugin is named by its coordinates
+			     in a plugins.list (us.bringardner.parley:parley-files-viewer-tui-lanterna:VERSION) -->
+			<plugin>
+				<groupId>us.bringardner.parley</groupId>
+				<artifactId>parley-launcher-maven-plugin</artifactId>
+				<version>${project.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>list</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
