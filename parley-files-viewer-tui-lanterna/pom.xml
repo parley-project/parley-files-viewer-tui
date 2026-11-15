@@ -154,7 +154,7 @@
 			<!-- For the plugin (its browser): fsh is there when fsh loads it. fsh builds
 			     parley-files-viewer-tui in, so this module is built after fsh -->
 			<groupId>us.bringardner</groupId>
-			<artifactId>fsh</artifactId>
+			<artifactId>parley-fsh</artifactId>
 			<version>2.0.0-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
